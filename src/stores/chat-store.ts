@@ -54,6 +54,7 @@ export const useChatStore = defineStore('chat', () => {
   };
 
   const createNewChat = () => {
+    // Create a new empty chat session
     const newChat: ChatSession = {
       id: Date.now().toString(),
       title: 'New Chat',
@@ -61,9 +62,33 @@ export const useChatStore = defineStore('chat', () => {
       messages: []
     };
     
+    // Add the new chat to the beginning of the list
     chatSessions.value.unshift(newChat);
+    
+    // Set it as the active chat
     activeChatId.value = newChat.id;
+    
     return newChat;
+  };
+  
+  const addMessage = (message: ChatMessage) => {
+    const chat = activeChat();
+    if (!chat) return;
+    
+    // Add message to the current chat
+    chat.messages.push(message);
+    
+    // Update the last message and timestamp
+    chat.lastMessage = message.content;
+    chat.timestamp = message.timestamp;
+    
+    // If this is the first message in a new chat, update the title
+    if (chat.messages.length === 1 && chat.title === 'New Chat' && message.sender === 'user') {
+      // Use the first few words of the message as the title (up to 5 words)
+      const words = message.content.split(' ');
+      const titleWords = words.slice(0, Math.min(5, words.length));
+      chat.title = titleWords.join(' ') + (words.length > 5 ? '...' : '');
+    }
   };
 
   const chatSuggestions = ref([
@@ -91,6 +116,7 @@ export const useChatStore = defineStore('chat', () => {
     activeChat,
     setActiveChat,
     createNewChat,
+    addMessage,
     chatSuggestions
   };
 });
