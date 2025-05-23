@@ -17,7 +17,7 @@ export interface ChatSession {
 }
 
 export const useChatStore = defineStore('chat', () => {
-  const currentUser = ref('Jayson');
+  const currentUser = ref('World!');
   const chatSessions = ref<ChatSession[]>([
     {
       id: '1',

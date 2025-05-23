@@ -63,7 +63,7 @@
           v-model="messageInput"
           outlined
           rounded
-          placeholder="Ask Gemini"
+          placeholder="Ask Mr Roboto"
           dense
           bg-color="white"
           class="chat-prompt-input col"
