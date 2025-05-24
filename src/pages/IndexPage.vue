@@ -24,9 +24,9 @@ onMounted(() => {
 
 <style>
 .page-container {
-  height: calc(100vh - 56px) !important; /* 56px is the height of the navbar */
-  min-height: calc(100vh - 56px) !important;
-  max-height: calc(100vh - 56px) !important;
+  height: calc(100vh - 64px) !important; /* 64px is the height of the navbar */
+  min-height: calc(100vh - 64px) !important;
+  max-height: calc(100vh - 64px) !important;
   overflow: hidden;
   background-color: white;
 }

@@ -57,7 +57,7 @@
     </div>
     
     <!-- Input Area -->
-    <div class="q-pa-md chat-input">
+    <div class="q-px-md q-pt-md q-pb-xl chat-input">
       <div class="row items-center chat-input-container">
         <q-input
           v-model="messageInput"
@@ -72,8 +72,8 @@
           ref="inputField"
         >
           <template v-slot:append>
-            <q-icon name="mic" class="cursor-pointer q-mr-sm" />
-            <q-icon name="send" @click="sendMessage" class="cursor-pointer" :class="{ 'disabled-icon': isProcessing }" />
+            <q-icon name="mdi-microphone" class="cursor-pointer q-mr-sm" />
+            <q-icon name="mdi-send" @click="sendMessage" class="cursor-pointer" :class="{ 'disabled-icon': isProcessing }" />
           </template>
         </q-input>
       </div>
@@ -340,7 +340,7 @@ onMounted(() => {
 
 .chat-input {
   background-color: white;
-  padding-bottom: 8px;
+  padding-bottom: 48px; /* Position input 48px from bottom */
   flex-shrink: 0; /* Prevent this from shrinking */
 }
 

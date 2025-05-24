@@ -1,14 +1,14 @@
 <template>
   <q-layout view="lHh Lpr lFf">
     <q-header class="bg-white text-black">
-      <q-toolbar class="q-px-md">
+      <q-toolbar class="q-px-md main-toolbar">
         <!-- Menu button that's only visible when drawer is hidden -->
         <q-btn
           v-if="!leftDrawerOpen"
           flat
           dense
           round
-          icon="menu"
+          icon="mdi-menu"
           aria-label="Menu"
           @click="toggleLeftDrawer"
           color="grey-7"
@@ -23,7 +23,7 @@
               :options="versionOptions" 
               dense 
               borderless
-              dropdown-icon="arrow_drop_down"
+              dropdown-icon="mdi-chevron-down"
               style="min-width: 160px"
             />
           </div>
@@ -41,24 +41,24 @@
       :width="280"
       class="drawer-container"
     >
-      <div class="drawer-header q-pa-md row items-center">
+      <div class="drawer-header q-px-md row items-center">
         <q-btn
           flat
           dense
           round
-          icon="menu"
-          aria-label="Menu"
+          icon="mdi-chevron-left"
+          aria-label="Close Menu"
           @click="toggleLeftDrawer"
           color="grey-7"
           class="q-mr-sm"
         />
-        <div class="text-subtitle1 text-weight-medium">Windsurf Chat</div>
+        <div class="text-subtitle1 text-weight-medium app-title">Mr Roboto Chat</div>
       </div>
       <div class="drawer-content-wrapper">
         <q-list padding class="no-border">
           <q-item clickable v-ripple class="q-mb-sm drawer-item" @click="newChat">
             <q-item-section avatar>
-              <q-icon name="add" />
+              <q-icon name="mdi-chat-plus-outline" />
             </q-item-section>
             <q-item-section>New chat</q-item-section>
           </q-item>
@@ -79,7 +79,7 @@
         <div class="settings-container">
           <q-item clickable v-ripple class="drawer-item">
             <q-item-section avatar>
-              <q-icon name="settings" color="grey-7" />
+              <q-icon name="mdi-cog" color="grey-7" />
             </q-item-section>
             <q-item-section>Settings</q-item-section>
           </q-item>
@@ -149,7 +149,9 @@ function newChat() {
 
 .drawer-header {
   border-bottom: none;
-  height: 56px;
+  height: 64px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 :deep(.q-drawer .q-separator) {
@@ -184,7 +186,7 @@ function newChat() {
 .drawer-content-wrapper {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 56px); /* Subtract header height */
+  height: calc(100% - 64px); /* Subtract header height */
   justify-content: space-between;
 }
 
@@ -201,5 +203,13 @@ function newChat() {
 
 .drawer-item:hover {
   background-color: rgba(0, 0, 0, 0.05);
+}
+.main-toolbar {
+  height: 64px;
+}
+
+.app-title {
+  line-height: 1.5;
+  font-size: 1.1rem;
 }
 </style>
