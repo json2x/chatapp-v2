@@ -6,6 +6,165 @@
 // Apply Urbanist font to the entire app
 body {
   font-family: 'Urbanist', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Theme transition class
+.theme-transitioning {
+  transition: all 0.3s ease !important;
+  
+  * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+  }
+}
+
+// Header transition for light/dark mode
+.header-transition {
+  background-color: white;
+  color: black;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Custom class for dark mode active chat items
+.bg-dark-active {
+  background-color: #2c2c2c !important;
+}
+
+// Dark mode styles
+.body--dark {
+  // Force version select text color
+  .q-select .q-field__native span {
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
+  // Navbar styling
+  .q-header {
+    background-color: #121212 !important;
+    color: white !important;
+    
+    .q-toolbar {
+      color: white !important;
+    }
+    
+    .q-btn {
+      color: white !important;
+    }
+    
+    // Direct styling for the version select text
+    .dark-mode-text {
+      color: rgba(255, 255, 255, 0.85) !important;
+      
+      &:deep(.q-field__native),
+      &:deep(.q-field__native span),
+      &:deep(.q-field__input) {
+        color: rgba(255, 255, 255, 0.85) !important;
+      }
+      
+      &:deep(.q-field__marginal) {
+        color: white !important;
+      }
+    }
+    
+    // Style for version select dropdown menu in dark mode
+    .q-menu {
+      background-color: #1e1e1e !important;
+      
+      .q-item {
+        color: rgba(255, 255, 255, 0.85) !important;
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+      }
+    }
+  }
+  .q-drawer {
+    background-color: #1e1e1e !important;
+    color: white !important;
+    
+    .q-item, .q-item__label, .q-item__section {
+      color: white !important;
+    }
+    
+    .q-item-label--header {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+  }
+  
+  .drawer-item, .chat-item {
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+  }
+  
+  // Chat item text colors in dark mode
+  .chat-title {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+  
+  .chat-preview {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+  
+  .chat-time {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  .chat-interface {
+    background-color: #121212 !important;
+  }
+  
+  .chat-input {
+    background-color: #121212 !important;
+  }
+  
+  .q-field--outlined .q-field__control {
+    background-color: #1e1e1e;
+  }
+  
+  .custom-chat-message .q-message__name {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+  
+  .chat-prompt-input {
+    background-color: #1e1e1e !important;
+  }
+  
+  // Chat input styling for dark mode
+  .chat-prompt-input {
+    &:deep(.q-field--outlined .q-field__control) {
+      background-color: #2c2c2c !important;
+      border-color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    &:deep(.q-field--focused .q-field__control) {
+      border-color: white !important;
+    }
+    
+    &:deep(.q-field__native) {
+      color: rgba(255, 255, 255, 0.9) !important;
+    }
+  }
+  
+  // Icon styling in dark mode
+  .primary-icon {
+    color: white !important;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+  }
+  
+  // Scrollbar in dark mode
+  .chat-messages {
+    &:hover::-webkit-scrollbar-thumb,
+    &:active::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    &:hover, &:active {
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+  }
 }
 
 // Apply Urbanist font to all Quasar components

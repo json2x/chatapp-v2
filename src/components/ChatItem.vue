@@ -3,7 +3,7 @@
     clickable
     v-ripple
     :active="active"
-    active-class="bg-grey-3"
+    :active-class="$q.dark.isActive ? 'bg-dark-active' : 'bg-grey-3'"
     class="chat-item q-py-sm"
     @click="$emit('select')"
   >
@@ -24,6 +24,9 @@
 
 <script setup lang="ts">
 import type { ChatSession } from 'src/stores/chat-store';
+import { useQuasar } from 'quasar';
+
+const $q = useQuasar();
 
 defineProps<{
   chat: ChatSession;

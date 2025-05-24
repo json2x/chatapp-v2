@@ -4,7 +4,7 @@
     <div class="col q-pa-md chat-messages" ref="messagesContainer">
       <div class="content-container">
         <div v-if="messages.length === 0" class="text-center">
-          <div class="text-h4 text-primary welcome-message">Hello, {{ userName }}</div>
+          <div class="text-h4 welcome-message gradient-text">Hello, {{ userName }}</div>
           
           <!-- Chat Suggestions -->
           <div class="suggestion-container q-mt-xl">
@@ -31,8 +31,8 @@
             :key="index"
             :name="message.sender === 'user' ? userName : 'Assistant'"
             :sent="message.sender === 'user'"
-            :bg-color="message.sender === 'user' ? 'grey-3' : 'white'"
-            :text-color="'black'"
+            :bg-color="message.sender === 'user' ? ($q.dark.isActive ? 'grey-8' : 'grey-3') : ($q.dark.isActive ? 'transparent' : 'white')"
+            :text-color="message.sender === 'user' ? ($q.dark.isActive ? 'white' : 'black') : ($q.dark.isActive ? 'white' : 'black')"
             class="q-mb-md custom-chat-message"
           >
             <div v-if="message.sender === 'user'">
@@ -62,18 +62,28 @@
         <q-input
           v-model="messageInput"
           outlined
-          rounded
           placeholder="Ask Mr Roboto"
           dense
-          bg-color="white"
+          :bg-color="$q.dark.isActive ? 'transparent' : 'white'"
           class="chat-prompt-input col"
+          :class="{ 'dark-input': $q.dark.isActive }"
+          :color="$q.dark.isActive ? 'white' : 'primary'"
           @keyup.enter="sendMessage"
-          :disable="isProcessing"
           ref="inputField"
         >
           <template v-slot:append>
-            <q-icon name="mdi-microphone" class="cursor-pointer q-mr-sm" />
-            <q-icon name="mdi-send" @click="sendMessage" class="cursor-pointer" :class="{ 'disabled-icon': isProcessing }" />
+            <!-- Show mic and send icons when not processing -->
+            <template v-if="!isProcessing">
+              <q-icon name="mdi-microphone" class="cursor-pointer q-mr-sm primary-icon" />
+              <q-icon name="mdi-send" @click="sendMessage" class="cursor-pointer primary-icon" />
+            </template>
+            <!-- Show stop button when processing -->
+            <template v-else>
+              <div class="stop-button-container">
+                <q-icon name="mdi-stop" @click="stopResponse" class="cursor-pointer stop-button" />
+                <div class="rotating-overlay"></div>
+              </div>
+            </template>
           </template>
         </q-input>
       </div>
@@ -88,13 +98,15 @@ import ChatSuggestion from './ChatSuggestion.vue';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
 import { marked } from 'marked';
-import { QInput } from 'quasar';
+import { QInput, useQuasar } from 'quasar';
 
+const $q = useQuasar();
 const chatStore = useChatStore();
 const messageInput = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const inputField = ref<QInput | null>(null);
 const isProcessing = ref(false);
+const responseTimer = ref<number | null>(null);
 
 const userName = computed(() => chatStore.currentUser || 'User');
 
@@ -167,16 +179,21 @@ function sendMessage() {
   // Simulate a delay before the assistant responds (between 1-3 seconds)
   const responseDelay = Math.floor(Math.random() * 2000) + 1000;
   
-  setTimeout(() => {
-    // Add assistant response
-    chatStore.addMessage({
-      id: (Date.now() + 1).toString(),
-      content: getRandomResponse(),
-      sender: 'assistant',
-      timestamp: new Date()
-    });
+  // Store the timer ID so we can cancel it if needed
+  responseTimer.value = window.setTimeout(() => {
+    // Only add the assistant response if we haven't cancelled
+    if (isProcessing.value) {
+      // Add assistant response
+      chatStore.addMessage({
+        id: (Date.now() + 1).toString(),
+        content: getRandomResponse(),
+        sender: 'assistant',
+        timestamp: new Date()
+      });
+    }
     
     isProcessing.value = false;
+    responseTimer.value = null;
     
     // Scroll to bottom after assistant response and focus input field
     void nextTick(() => {
@@ -194,6 +211,26 @@ function scrollToBottom() {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
   }
+}
+
+// Function to stop the assistant response
+function stopResponse() {
+  // Clear the response timer if it exists
+  if (responseTimer.value !== null) {
+    window.clearTimeout(responseTimer.value);
+    responseTimer.value = null;
+  }
+  
+  // Reset processing state immediately
+  isProcessing.value = false;
+  
+  // Focus the input field after stopping
+  void nextTick(() => {
+    if (inputField.value && inputField.value.$el) {
+      const input = inputField.value.$el.querySelector('input');
+      if (input) input.focus();
+    }
+  });
 }
 
 // Configure marked with highlight.js for code highlighting
@@ -272,6 +309,7 @@ onMounted(() => {
   background-color: white;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.3s ease;
 }
 
 .chat-messages {
@@ -298,14 +336,14 @@ onMounted(() => {
   
   /* Only show scrollbar when actively scrolling */
   &.scrolling::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.2)');
   }
   
   /* Firefox - allocate space but make it transparent when not scrolling */
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   &.scrolling {
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    scrollbar-color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.5) transparent' : 'rgba(0, 0, 0, 0.2) transparent');
   }
   
   /* Add padding to ensure content doesn't shift */
@@ -329,9 +367,15 @@ onMounted(() => {
 
 .welcome-message {
   margin-top: 20vh;
-  color: #5f6368;
   font-weight: 400;
   margin-bottom: 8rem;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #2196f3 30%, #3f51b5 45%, #e91e63 55%, #9c27b0 65%, #2196f3 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .suggestion-container {
@@ -342,6 +386,7 @@ onMounted(() => {
   background-color: white;
   padding-bottom: 48px; /* Position input 48px from bottom */
   flex-shrink: 0; /* Prevent this from shrinking */
+  transition: background-color 0.3s ease;
 }
 
 .chat-input-container {
@@ -351,24 +396,115 @@ onMounted(() => {
 }
 
 .chat-prompt-input {
-  border-radius: 24px;
+  border-radius: 8px; /* Less rounded corners for a more box-like shape */
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* Style for the input field with primary color border */
+:deep(.q-field--outlined .q-field__control) {
+  border-color: var(--q-primary);
+}
+
+/* Style for the icons to match primary color */
+.primary-icon {
+  color: var(--q-primary);
+  border-radius: 50%;
+  padding: 4px;
+  transition: all 0.2s ease;
+}
+
+.primary-icon:hover {
+  background-color: rgba(25, 118, 210, 0.1); /* Transparent blue background on hover */
+  transform: scale(1.1);
 }
 
 /* Customize the input field */
 :deep(.q-field__control) {
-  border-radius: 24px;
-  height: 48px;
+  border-radius: 8px; /* Match the border-radius of the input */
+  height: 54px; /* Increase height for more padding */
+}
+
+/* Dark mode input styling */
+.dark-input {
+  :deep(.q-field--outlined .q-field__control) {
+    background-color: #2c2c2c !important;
+    border-color: rgba(255, 255, 255, 0.7) !important;
+  }
+  
+  :deep(.q-field--outlined.q-field--focused .q-field__control),
+  :deep(.q-field--outlined.q-field--highlighted .q-field__control) {
+    border-color: white !important;
+    border: 2px solid white !important;
+  }
+  
+  :deep(.q-field__native) {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+  
+  .primary-icon {
+    color: white !important;
+  }
+  
+  .primary-icon:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+}
+
+:deep(.q-field__native) {
+  padding: 12px; /* Add more padding inside the input */
 }
 
 :deep(.q-field__marginal) {
-  height: 48px;
+  height: 54px; /* Match the increased height */
   color: #5f6368;
+  padding-right: 8px; /* Add more padding on the right side */
 }
 
 .disabled-icon {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.stop-button {
+  color: #f44336; /* Red color for stop button */
+  transition: all 0.2s ease;
+  background-color: rgba(244, 67, 54, 0.1); /* Very transparent red background */
+  border-radius: 50%;
+  padding: 4px;
+}
+
+.stop-button:hover {
+  transform: scale(1.1);
+  background-color: rgba(244, 67, 54, 0.2); /* Slightly more visible on hover */
+}
+
+.stop-button-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rotating-overlay {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: rgba(244, 67, 54, 0.6); /* Semi-transparent red matching the stop button */
+  animation: rotate-animation 1.5s linear infinite;
+  pointer-events: none; /* Allow clicks to pass through to the button */
+}
+
+@keyframes rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .typing-indicator {
@@ -381,12 +517,12 @@ onMounted(() => {
 }
 
 .custom-chat-message :deep(.q-message__name) {
-  color:rgb(0, 0, 0) !important;
+  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)' : 'rgb(0, 0, 0)') !important;
   opacity: 0.5 !important;
 }
 
 .custom-chat-message :deep(.q-message-name) {
-  color:rgb(0, 0, 0) !important;
+  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)' : 'rgb(0, 0, 0)') !important;
   opacity: 0.5 !important;
 }
 
@@ -401,6 +537,10 @@ onMounted(() => {
 
 :deep(.q-message-received) {
   margin-right: auto; /* Align assistant messages to the left */
+}
+
+:deep(.q-message-text--received) {
+  background-color: v-bind($q.dark.isActive ? 'var(--q-dark-page)' : 'white') !important;
 }
 
 /* Markdown content styling */
