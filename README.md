@@ -2,7 +2,7 @@
 
 A modern chat application built with Quasar Framework and Vue 3, inspired by Google's Gemini AI interface. This application provides a clean, responsive chat experience with support for markdown rendering and code syntax highlighting.
 
-![Windsurf Chat App Screenshot](screenshot.png)
+![image](https://github.com/user-attachments/assets/fa425f7a-86dc-4726-8f6a-3c1b19724e55)
 
 ## Features
 
