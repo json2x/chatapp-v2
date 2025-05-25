@@ -3,7 +3,27 @@
     <!-- Chat Messages Area -->
     <div class="col q-pa-md chat-messages" ref="messagesContainer">
       <div class="content-container">
-        <div v-if="messages.length === 0" class="text-center">
+        <!-- Loading state for messages -->
+        <div v-if="isLoadingMessages && messages.length === 0" class="text-center q-pa-xl">
+          <q-spinner-dots color="primary" size="3em" />
+          <div class="q-mt-md text-subtitle1">Loading conversation...</div>
+        </div>
+        
+        <!-- Error state for messages -->
+        <div v-else-if="messageLoadError" class="text-center q-pa-xl">
+          <q-icon name="mdi-alert-circle" color="negative" size="3em" />
+          <div class="q-mt-md text-subtitle1 text-negative">{{ messageLoadError }}</div>
+          <q-btn 
+            flat 
+            color="primary" 
+            label="Retry" 
+            class="q-mt-md" 
+            @click="retryLoadMessages"
+          />
+        </div>
+        
+        <!-- Empty state / Welcome screen -->
+        <div v-else-if="messages.length === 0" class="text-center">
           <div class="text-h4 welcome-message gradient-text">Hello, {{ userName }}</div>
           
           <!-- Chat Suggestions -->
@@ -94,6 +114,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, watchEffect } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
+import { useUserStore } from 'src/stores/user-store';
 import ChatSuggestion from './ChatSuggestion.vue';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
@@ -102,16 +123,19 @@ import { QInput, useQuasar } from 'quasar';
 
 const $q = useQuasar();
 const chatStore = useChatStore();
+const userStore = useUserStore();
 const messageInput = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const inputField = ref<QInput | null>(null);
 const isProcessing = ref(false);
 const responseTimer = ref<number | null>(null);
 
-const userName = computed(() => chatStore.currentUser || 'User');
+const userName = computed(() => userStore.userSession.fullName || 'User');
 
 const activeChat = computed(() => chatStore.activeChat());
 const messages = computed(() => activeChat.value?.messages || []);
+const isLoadingMessages = computed(() => chatStore.isLoadingMessages);
+const messageLoadError = computed(() => chatStore.messageLoadError);
 
 const chatSuggestions = computed(() => chatStore.chatSuggestions);
 
@@ -260,6 +284,13 @@ function renderMarkdown(content: string) {
 // Function already defined above
 
 // No need for this function as it's already defined above
+
+// Function to retry loading messages if there was an error
+const retryLoadMessages = async () => {
+  if (activeChat.value) {
+    await chatStore.setActiveChat(activeChat.value.id);
+  }
+};
 
 onMounted(() => {
   if (activeChat.value) {

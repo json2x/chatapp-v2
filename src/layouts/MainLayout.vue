@@ -31,7 +31,7 @@
         </q-toolbar-title>
 
         <q-avatar size="32px" class="q-mr-sm cursor-pointer">
-          <img src="https://cdn.quasar.dev/img/boy-avatar.png">
+          <img :src="userSession.avatarUrl">
         </q-avatar>
       </q-toolbar>
     </q-header>
@@ -68,12 +68,43 @@
           
           <q-item-label header>Recent</q-item-label>
           
+          <!-- Loading state -->
+          <div v-if="isLoadingConversations && conversations.length === 0" class="q-pa-md text-center">
+            <q-spinner-dots color="primary" size="2em" />
+            <div class="q-mt-sm text-grey-7">Loading conversations...</div>
+          </div>
+          
+          <!-- Error state -->
+          <div v-else-if="loadError" class="q-pa-md">
+            <q-banner rounded class="bg-negative text-white">
+              {{ loadError }}
+              <template v-slot:action>
+                <q-btn flat label="Retry" color="white" @click="fetchUserConversations" />
+              </template>
+            </q-banner>
+          </div>
+          
+          <!-- Empty state -->
+          <div v-else-if="conversations.length === 0" class="q-pa-md text-center">
+            <q-icon name="mdi-chat-outline" size="2em" color="grey-5" />
+            <div class="q-mt-sm text-grey-7">No conversations yet</div>
+            <q-btn 
+              flat 
+              color="primary" 
+              label="Start a new chat" 
+              class="q-mt-sm" 
+              @click="newChat"
+            />
+          </div>
+          
+          <!-- Conversation list -->
           <ChatItem 
+            v-else
             v-for="chat in conversations" 
             :key="chat.id" 
             :chat="chat"
             :active="activeChatId === chat.id"
-            @select="setActiveChat(chat.id)"
+            @select="handleChatSelect(chat.id)"
           />
         </q-list>
         
@@ -120,10 +151,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
+import { useUserStore } from 'src/stores/user-store';
+import { getConversations } from 'src/services/conversationService';
+import { debounce } from 'src/misc/utils';
 import ChatItem from 'components/ChatItem.vue';
-import { Dark } from 'quasar';
+import { Dark, Loading, QSpinnerDots } from 'quasar';
 
 const chatStore = useChatStore();
+const userStore = useUserStore();
+const userSession = computed(() => userStore.userSession);
 
 // Version dropdown
 const selectedVersion = ref('2.3 Pro (preview)');
@@ -144,14 +180,64 @@ const leftDrawerOpen = ref(false);
 type ThemeType = 'light' | 'dark';
 const currentTheme = ref<ThemeType>('light');
 
-// Load theme from localStorage on mount
-onMounted(() => {
+// Loading state for conversations
+const isLoadingConversations = ref(false);
+const loadError = ref<string | null>(null);
+
+// Load theme and fetch conversations on mount
+onMounted(async () => {
+  // Load theme from localStorage
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
     currentTheme.value = savedTheme as ThemeType;
     applyTheme(currentTheme.value);
   }
+  
+  // Fetch conversations for the current user
+  await fetchUserConversations();
 });
+
+// Function to fetch conversations for the current user
+async function fetchUserConversations() {
+  isLoadingConversations.value = true;
+  loadError.value = null;
+  
+  try {
+    // Show loading indicator
+    Loading.show({
+      spinner: QSpinnerDots,
+      message: 'Loading conversations...',
+      backgroundColor: 'rgba(0, 0, 0, 0.4)'
+    });
+    
+    // Get user ID from user store
+    const userId = userSession.value.id;
+    
+    // Fetch conversations for the current user
+    const userConversations = await getConversations(userId);
+    
+    // Update the chat store with fetched conversations
+    chatStore.$patch({
+      conversations: userConversations.map(conv => ({
+        id: conv.id,
+        title: conv.title,
+        lastMessage: conv.first_assistant_message || conv.first_user_message || 'New conversation',
+        timestamp: new Date(conv.updated_at),
+        messages: [] // We'll load full messages only when a conversation is selected
+      }))
+    });
+    
+    // We no longer automatically set the first conversation as active
+    // This allows the welcome screen with user's name and suggestions to be shown
+    // The user must explicitly select a conversation to view it
+  } catch (error) {
+    console.error('Failed to fetch conversations:', error);
+    loadError.value = 'Failed to load conversations. Please try again.';
+  } finally {
+    isLoadingConversations.value = false;
+    Loading.hide();
+  }
+}
 
 // Watch for theme changes and apply them
 watch(currentTheme, (newTheme) => {
@@ -186,8 +272,28 @@ function applyTheme(theme: ThemeType) {
   }, 50);
 }
 
-function setActiveChat(chatId: string) {
-  chatStore.setActiveChat(chatId);
+// Original setActiveChat function moved above the debounced version
+
+// Original setActiveChat function
+async function setActiveChatImpl(chatId: string) {
+  try {
+    await chatStore.setActiveChat(chatId);
+  } catch (error) {
+    console.error('Error setting active chat:', error);
+  }
+}
+
+// Debounced version with 500ms delay
+const setActiveChat = debounce(setActiveChatImpl, 500);
+
+// Function to handle chat selection with immediate loading state
+function handleChatSelect(chatId: string) {
+  // Immediately set the active chat ID and show loading state
+  chatStore.activeChatId = chatId;
+  chatStore.isLoadingMessages = true;
+  
+  // Then call the debounced function to actually fetch the data
+  setActiveChat(chatId);
 }
 
 function newChat() {

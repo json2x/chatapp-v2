@@ -6,19 +6,12 @@
 
 <script setup lang="ts">
 import ChatInterface from 'components/ChatInterface.vue';
-import { useChatStore } from 'src/stores/chat-store';
 import { onMounted } from 'vue';
 
-const chatStore = useChatStore();
-
 onMounted(() => {
-  // Initialize with the first chat selected if available
-  if (chatStore.chatSessions.length > 0 && !chatStore.activeChatId) {
-    const firstChat = chatStore.chatSessions[0];
-    if (firstChat) {
-      chatStore.setActiveChat(firstChat.id);
-    }
-  }
+  // We no longer automatically set the first conversation as active
+  // This allows the welcome screen with user's name and suggestions to be shown
+  // The user must explicitly select a conversation to view it
 });
 </script>
 

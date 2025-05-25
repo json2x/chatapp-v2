@@ -16,8 +16,9 @@ describe('Conversation Service', () => {
   beforeEach(() => server.resetHandlers());
 
   describe('getConversations', () => {
-    it('should fetch all conversations', async () => {
-      const conversations = await getConversations();
+    it('should fetch all conversations for a user', async () => {
+      const userId = 'test-user';
+      const conversations = await getConversations(userId);
       
       expect(conversations).toEqual(mockConversationSummaries);
       expect(conversations).toHaveLength(2);
@@ -39,7 +40,8 @@ describe('Conversation Service', () => {
         })
       );
 
-      const conversations = await getConversations({ limit: 10, offset: 20 });
+      const userId = 'test-user';
+      const conversations = await getConversations(userId, { limit: 10, offset: 20 });
       
       expect(conversations).toHaveLength(1);
     });
@@ -57,7 +59,8 @@ describe('Conversation Service', () => {
         })
       );
 
-      const conversations = await getConversations({ user_id: 'test-user' });
+      const userId = 'test-user';
+      const conversations = await getConversations(userId);
       
       expect(conversations).toHaveLength(1);
     });
@@ -70,7 +73,8 @@ describe('Conversation Service', () => {
         })
       );
 
-      await expect(getConversations()).rejects.toThrow('Failed to fetch conversations');
+      const userId = 'test-user';
+      await expect(getConversations(userId)).rejects.toThrow('Failed to fetch conversations');
     });
   });
 

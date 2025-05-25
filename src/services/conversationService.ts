@@ -9,13 +9,16 @@ import { API_BASE_URL, buildUrl } from './apiUtils';
 
 
 /**
- * Fetches a list of conversations with optional pagination and filtering
- * @param params Optional pagination and filtering parameters
+ * Fetches a list of conversations for a specific user with optional pagination
+ * @param userId Required user ID to fetch conversations for
+ * @param params Optional pagination parameters
  * @returns Promise with array of conversation summaries
  */
-export async function getConversations(params?: PaginationParams): Promise<ConversationSummary[]> {
+export async function getConversations(userId: string, params?: Omit<PaginationParams, 'user_id'>): Promise<ConversationSummary[]> {
   try {
-    const url = buildUrl('/conversations', params);
+    // Combine the userId with any other params
+    const queryParams = { ...params, user_id: userId };
+    const url = buildUrl('/conversations', queryParams);
     
     const response = await fetch(url);
     
