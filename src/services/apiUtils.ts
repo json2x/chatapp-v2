@@ -2,9 +2,10 @@
  * Common API utilities and configuration for services
  */
 import type { PaginationParams } from '../types/servicesTypes';
+import { API_BASE_URL, API_ENDPOINTS } from '../misc/constants';
 
-// Base API URL - consider moving this to an environment config
-export const API_BASE_URL = 'http://localhost:8000/api';
+// Re-export for backward compatibility
+export { API_BASE_URL, API_ENDPOINTS };
 
 /**
  * Helper function to handle API errors

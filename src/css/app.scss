@@ -221,3 +221,17 @@ body {
     scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   }
 }
+
+// Centered loading overlay
+.centered-loading {
+  .q-loading__message {
+    font-size: 1.2rem;
+    margin-top: 1rem;
+    text-align: center;
+  }
+  
+  .q-spinner {
+    margin: 0 auto;
+    display: block;
+  }
+}

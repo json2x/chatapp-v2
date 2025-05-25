@@ -1,5 +1,9 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useUserStore } from './user-store';
+import { getConversationById } from 'src/services/conversationService';
+import type { Message } from 'src/types/servicesTypes';
+import { Loading, QSpinnerDots } from 'quasar';
 
 export interface ChatMessage {
   id: string;
@@ -17,7 +21,9 @@ export interface Conversation {
 }
 
 export const useChatStore = defineStore('chat', () => {
-  const currentUser = ref('Jayson');
+  // Use the user store instead of hardcoded username
+  const userStore = useUserStore();
+  const currentUser = computed(() => userStore.userSession.fullName);
   const conversations = ref<Conversation[]>([
     {
       id: '1',
@@ -42,6 +48,7 @@ export const useChatStore = defineStore('chat', () => {
     }
   ]);
 
+  // Make activeChatId writable from outside the store
   const activeChatId = ref<string | null>(null);
   
   const activeChat = () => {
@@ -49,8 +56,73 @@ export const useChatStore = defineStore('chat', () => {
     return conversations.value.find(chat => chat.id === activeChatId.value) || null;
   };
 
-  const setActiveChat = (chatId: string) => {
-    activeChatId.value = chatId;
+  // Make isLoadingMessages writable from outside the store
+  const isLoadingMessages = ref(false);
+  const messageLoadError = ref<string | null>(null);
+
+  const setActiveChat = async (chatId: string) => {
+    // Set active chat ID if not already set by handleChatSelect
+    if (activeChatId.value !== chatId) {
+      activeChatId.value = chatId;
+    }
+    
+    // Find the chat in our local state
+    const chat = conversations.value.find(c => c.id === chatId);
+    if (!chat) return;
+    
+    // If the chat already has messages, don't fetch them again
+    if (chat.messages && chat.messages.length > 0) {
+      isLoadingMessages.value = false; // Ensure loading is turned off
+      return;
+    }
+    
+    // Show loading indicator if not already set by handleChatSelect
+    if (!isLoadingMessages.value) {
+      isLoadingMessages.value = true;
+    }
+    messageLoadError.value = null;
+    
+    // Show Quasar loading overlay with centered content
+    Loading.show({
+      spinner: QSpinnerDots,
+      message: 'Loading conversation...',
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      messageColor: 'white',
+      spinnerSize: 80,
+      spinnerColor: 'primary',
+      customClass: 'centered-loading'
+    });
+    
+    try {
+      // Fetch the full conversation with messages
+      const fullConversation = await getConversationById(chatId);
+      
+      // Map the API messages to our ChatMessage format
+      const mappedMessages: ChatMessage[] = fullConversation.messages.map((msg: Message) => ({
+        id: msg.id,
+        content: msg.content,
+        sender: msg.role === 'user' ? 'user' : 'assistant',
+        timestamp: new Date(msg.created_at)
+      }));
+      
+      // Update the chat with the fetched messages
+      chat.messages = mappedMessages;
+      
+      // Update the last message if available
+      if (mappedMessages.length > 0) {
+        const lastMessage = mappedMessages[mappedMessages.length - 1];
+        if (lastMessage) {
+          chat.lastMessage = lastMessage.content;
+          chat.timestamp = lastMessage.timestamp;
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching messages for conversation ${chatId}:`, error);
+      messageLoadError.value = 'Failed to load messages. Please try again.';
+    } finally {
+      isLoadingMessages.value = false;
+      Loading.hide();
+    }
   };
 
   const createNewChat = () => {
@@ -109,6 +181,19 @@ export const useChatStore = defineStore('chat', () => {
     }
   ]);
 
+  /**
+   * Removes a conversation from the store by ID
+   * @param conversationId The ID of the conversation to remove
+   */
+  const removeConversation = (conversationId: string) => {
+    // Find the index of the conversation to remove
+    const index = conversations.value.findIndex(c => c.id === conversationId);
+    if (index !== -1) {
+      // Remove the conversation from the array
+      conversations.value.splice(index, 1);
+    }
+  };
+
   return {
     currentUser,
     conversations,
@@ -118,6 +203,9 @@ export const useChatStore = defineStore('chat', () => {
     setActiveChat,
     createNewChat,
     addMessage,
-    chatSuggestions
+    removeConversation,
+    chatSuggestions,
+    isLoadingMessages,
+    messageLoadError
   };
 });

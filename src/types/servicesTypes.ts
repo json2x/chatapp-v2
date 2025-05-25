@@ -66,7 +66,7 @@ export interface ApiResponse<T> {
 export interface PaginationParams extends Record<string, unknown> {
   limit?: number;
   offset?: number;
-  user_id?: string | null;
+  user_id: string; // Now required
 }
 
 // Response from GET /api/models
