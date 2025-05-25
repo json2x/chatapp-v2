@@ -82,11 +82,15 @@ export const useChatStore = defineStore('chat', () => {
     }
     messageLoadError.value = null;
     
-    // Show Quasar loading overlay
+    // Show Quasar loading overlay with centered content
     Loading.show({
       spinner: QSpinnerDots,
       message: 'Loading conversation...',
-      backgroundColor: 'rgba(0, 0, 0, 0.4)'
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      messageColor: 'white',
+      spinnerSize: 80,
+      spinnerColor: 'primary',
+      customClass: 'centered-loading'
     });
     
     try {
@@ -177,6 +181,19 @@ export const useChatStore = defineStore('chat', () => {
     }
   ]);
 
+  /**
+   * Removes a conversation from the store by ID
+   * @param conversationId The ID of the conversation to remove
+   */
+  const removeConversation = (conversationId: string) => {
+    // Find the index of the conversation to remove
+    const index = conversations.value.findIndex(c => c.id === conversationId);
+    if (index !== -1) {
+      // Remove the conversation from the array
+      conversations.value.splice(index, 1);
+    }
+  };
+
   return {
     currentUser,
     conversations,
@@ -186,6 +203,7 @@ export const useChatStore = defineStore('chat', () => {
     setActiveChat,
     createNewChat,
     addMessage,
+    removeConversation,
     chatSuggestions,
     isLoadingMessages,
     messageLoadError

@@ -14,10 +14,19 @@
       </q-item-label>
     </q-item-section>
 
-    <q-item-section side top>
-      <q-item-label caption v-if="chat.timestamp" class="chat-time">
-        {{ formatTime(chat.timestamp) }}
-      </q-item-label>
+    <q-item-section side>
+      <div class="column items-center">
+        <q-item-label caption v-if="chat.timestamp" class="chat-time q-mb-sm">
+          {{ formatTime(chat.timestamp) }}
+        </q-item-label>
+        <q-icon 
+          name="mdi-trash-can-outline" 
+          color="grey-7" 
+          size="sm"
+          class="trash-icon"
+          @click.stop="$emit('delete', chat.id)"
+        />
+      </div>
     </q-item-section>
   </q-item>
 </template>
@@ -35,6 +44,7 @@ defineProps<{
 
 defineEmits<{
   (e: 'select'): void;
+  (e: 'delete', id: string): void;
 }>();
 
 function formatTime(date: Date): string {
@@ -59,29 +69,19 @@ function formatTime(date: Date): string {
 
 <style scoped>
 .chat-item {
-  border-radius: 12px;
-  margin: 3px 6px;
-  padding: 10px 16px;
+  border-radius: 8px;
+  margin: 2px 0;
   transition: background-color 0.2s ease;
 }
 
-.chat-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
 .chat-title {
-  font-size: 0.9rem;
   font-weight: 500;
-  color: #202124;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.95rem;
 }
 
 .chat-preview {
-  font-size: 0.8rem;
   color: #5f6368;
-  margin-top: 2px;
+  font-size: 0.8rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -91,7 +91,31 @@ function formatTime(date: Date): string {
   font-size: 0.7rem;
   color: #80868b;
   white-space: nowrap;
-  text-align: right;
+  text-align: center;
   min-width: 60px;
+}
+
+.trash-icon {
+  opacity: 0;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.chat-item:hover .trash-icon {
+  opacity: 0.7;
+}
+
+.trash-icon:hover {
+  opacity: 1 !important;
+  color: #F44336 !important; /* Red/danger color */
+  background-color: rgba(244, 67, 54, 0.1); /* Light red background */
+  transform: scale(1.1);
+}
+
+/* Dark mode overrides */
+:deep(.q-item--dark) .trash-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 </style>

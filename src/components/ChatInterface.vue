@@ -4,9 +4,11 @@
     <div class="col q-pa-md chat-messages" ref="messagesContainer">
       <div class="content-container">
         <!-- Loading state for messages -->
-        <div v-if="isLoadingMessages && messages.length === 0" class="text-center q-pa-xl">
-          <q-spinner-dots color="primary" size="3em" />
-          <div class="q-mt-md text-subtitle1">Loading conversation...</div>
+        <div v-if="isLoadingMessages && messages.length === 0" class="loading-container">
+          <div class="loading-content">
+            <q-spinner-dots color="primary" size="3em" />
+            <div class="q-mt-md text-subtitle1 text-grey-5">Loading conversation...</div>
+          </div>
         </div>
         
         <!-- Error state for messages -->
@@ -434,6 +436,19 @@ onMounted(() => {
 /* Style for the input field with primary color border */
 :deep(.q-field--outlined .q-field__control) {
   border-color: var(--q-primary);
+}
+
+/* Loading container styles for perfect centering */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.loading-content {
+  text-align: center;
 }
 
 /* Style for the icons to match primary color */

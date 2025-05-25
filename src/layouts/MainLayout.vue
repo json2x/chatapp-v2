@@ -66,7 +66,7 @@
           
           <div class="q-my-md"></div>
           
-          <q-item-label header>Recent</q-item-label>
+          <q-item-label v-if="conversations.length !== 0" header>Recent</q-item-label>
           
           <!-- Loading state -->
           <div v-if="isLoadingConversations && conversations.length === 0" class="q-pa-md text-center">
@@ -75,25 +75,15 @@
           </div>
           
           <!-- Error state -->
-          <div v-else-if="loadError" class="q-pa-md">
-            <q-banner rounded class="bg-negative text-white">
-              {{ loadError }}
-              <template v-slot:action>
-                <q-btn flat label="Retry" color="white" @click="fetchUserConversations" />
-              </template>
-            </q-banner>
-          </div>
-          
-          <!-- Empty state -->
-          <div v-else-if="conversations.length === 0" class="q-pa-md text-center">
-            <q-icon name="mdi-chat-outline" size="2em" color="grey-5" />
-            <div class="q-mt-sm text-grey-7">No conversations yet</div>
+          <div v-else-if="loadError" class="q-pa-md text-center">
+            <div class="q-mt-sm text-grey-7">{{ loadError || 'Error loading conversations' }}</div>
             <q-btn 
               flat 
+              round
               color="primary" 
-              label="Start a new chat" 
-              class="q-mt-sm" 
-              @click="newChat"
+              class="q-mt-sm"
+              icon="mdi-refresh"
+              @click="fetchUserConversations" 
             />
           </div>
           
@@ -105,6 +95,7 @@
             :chat="chat"
             :active="activeChatId === chat.id"
             @select="handleChatSelect(chat.id)"
+            @delete="handleDeleteConversation"
           />
         </q-list>
         
@@ -152,13 +143,14 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
-import { getConversations } from 'src/services/conversationService';
+import { getConversations, deleteConversation } from 'src/services/conversationService';
 import { debounce } from 'src/misc/utils';
 import ChatItem from 'components/ChatItem.vue';
-import { Dark, Loading, QSpinnerDots } from 'quasar';
+import { Dark, QSpinnerDots, useQuasar } from 'quasar';
 
 const chatStore = useChatStore();
 const userStore = useUserStore();
+const $q = useQuasar();
 const userSession = computed(() => userStore.userSession);
 
 // Version dropdown
@@ -201,15 +193,14 @@ onMounted(async () => {
 async function fetchUserConversations() {
   isLoadingConversations.value = true;
   loadError.value = null;
+  // Use the global Loading API instead of $q.loading
+  $q.loading.show({
+    spinner: QSpinnerDots,
+    message: 'Loading conversations...',
+
+  });
   
   try {
-    // Show loading indicator
-    Loading.show({
-      spinner: QSpinnerDots,
-      message: 'Loading conversations...',
-      backgroundColor: 'rgba(0, 0, 0, 0.4)'
-    });
-    
     // Get user ID from user store
     const userId = userSession.value.id;
     
@@ -235,7 +226,8 @@ async function fetchUserConversations() {
     loadError.value = 'Failed to load conversations. Please try again.';
   } finally {
     isLoadingConversations.value = false;
-    Loading.hide();
+    // Use $q.loading as per Quasar docs
+    $q.loading.hide();
   }
 }
 
@@ -298,6 +290,66 @@ function handleChatSelect(chatId: string) {
 
 function newChat() {
   chatStore.createNewChat();
+}
+
+// Function to handle conversation deletion
+async function handleDeleteConversation(conversationId: string) {
+  try {
+    // Show confirmation dialog before deleting
+    const confirmed = await new Promise<boolean>(resolve => {
+      // Using Quasar dialog for confirmation
+      $q.dialog({
+        title: 'Confirm Deletion',
+        message: 'Are you sure you want to delete this conversation?',
+        cancel: true,
+        persistent: true
+      }).onOk(() => {
+        resolve(true);
+      }).onCancel(() => {
+        resolve(false);
+      });
+    });
+    
+    if (!confirmed) return;
+    
+    // Show loading while deleting
+    $q.loading.show({
+      spinner: QSpinnerDots,
+      message: 'Deleting conversation...',
+      backgroundColor: 'rgba(0, 0, 0, 0.4)'
+    });
+    
+    // Call the API to delete the conversation
+    await deleteConversation(conversationId);
+    
+    // Remove the conversation from the store
+    chatStore.removeConversation(conversationId);
+    
+    // If the deleted conversation was active, clear the active chat
+    if (activeChatId.value === conversationId) {
+      chatStore.activeChatId = null;
+    }
+    
+    // Show success notification
+    $q.notify({
+      type: 'positive',
+      message: 'Conversation deleted successfully',
+      position: 'top',
+      timeout: 2000
+    });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    
+    // Show error notification
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to delete conversation',
+      position: 'top',
+      timeout: 2000
+    });
+  } finally {
+    $q.loading.hide();
+  }
 }
 </script>
 
