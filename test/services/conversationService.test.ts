@@ -21,7 +21,7 @@ describe('Conversation Service', () => {
       
       expect(conversations).toEqual(mockConversationSummaries);
       expect(conversations).toHaveLength(2);
-      expect(conversations[0].id).toBe('conv-1');
+      expect(conversations[0]?.id).toBe('conv-1');
     });
 
     it('should handle pagination parameters', async () => {

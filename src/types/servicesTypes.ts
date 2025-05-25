@@ -7,7 +7,7 @@ export interface Message {
   created_at: string; // ISO date string
   tokens?: number | null;
   model?: string | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 // ConversationSummary - used for listing conversations
@@ -22,7 +22,7 @@ export interface ConversationSummary {
   first_user_message: string | null;
   first_assistant_message: string | null;
   message_count: number;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 // Conversation - full conversation with messages
@@ -38,7 +38,7 @@ export interface Conversation {
   first_assistant_message: string | null;
   messages: Message[];
   message_count?: number | null;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 // DeleteResponse - response for delete operations
@@ -63,7 +63,7 @@ export interface ApiResponse<T> {
 }
 
 // Pagination parameters
-export interface PaginationParams {
+export interface PaginationParams extends Record<string, unknown> {
   limit?: number;
   offset?: number;
   user_id?: string | null;

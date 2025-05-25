@@ -1,6 +1,7 @@
 /**
  * Common API utilities and configuration for services
  */
+import type { PaginationParams } from '../types/servicesTypes';
 
 // Base API URL - consider moving this to an environment config
 export const API_BASE_URL = 'http://localhost:8000/api';
@@ -16,7 +17,7 @@ export async function handleApiError(response: Response, errorMessage: string): 
   try {
     const errorData = await response.json();
     errorDetails = JSON.stringify(errorData);
-  } catch (e) {
+  } catch {    // Ignore parsing errors
     // If we can't parse the error as JSON, use the status text
     errorDetails = response.statusText;
   }
@@ -30,7 +31,7 @@ export async function handleApiError(response: Response, errorMessage: string): 
  * @param params Query parameters object
  * @returns Formatted URL with query parameters
  */
-export function buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined | null>): string {
+export function buildUrl(endpoint: string, params?: Record<string, unknown> | PaginationParams): string {
   if (!params) {
     return `${API_BASE_URL}${endpoint}`;
   }
@@ -39,7 +40,15 @@ export function buildUrl(endpoint: string, params?: Record<string, string | numb
   
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      queryParams.append(key, value.toString());
+      // Handle different types of values appropriately
+      if (typeof value === 'string') {
+        queryParams.append(key, value);
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        queryParams.append(key, value.toString());
+      } else {
+        // For objects and any other types, use JSON.stringify
+        queryParams.append(key, JSON.stringify(value));
+      }
     }
   });
   

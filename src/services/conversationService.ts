@@ -1,10 +1,10 @@
-import { 
+import type { 
   Conversation, 
   ConversationSummary, 
   DeleteResponse, 
   PaginationParams 
 } from '../types/servicesTypes';
-import { API_BASE_URL, buildUrl, handleApiError } from './apiUtils';
+import { API_BASE_URL, buildUrl } from './apiUtils';
 
 
 

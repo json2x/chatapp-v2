@@ -1,9 +1,9 @@
-import { 
+import type { 
   AvailableModels, 
   ProviderModels, 
   DefaultModels 
 } from '../types/servicesTypes';
-import { API_BASE_URL, handleApiError } from './apiUtils';
+import { API_BASE_URL } from './apiUtils';
 
 
 

@@ -1,8 +1,8 @@
-import { 
+import type { 
   ChatRequest, 
   ChatStreamResponse 
 } from '../types/servicesTypes';
-import { API_BASE_URL, handleApiError } from './apiUtils';
+import { API_BASE_URL } from './apiUtils';
 
 
 
