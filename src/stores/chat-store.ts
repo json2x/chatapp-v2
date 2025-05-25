@@ -8,7 +8,7 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export interface ChatSession {
+export interface Conversation {
   id: string;
   title: string;
   lastMessage?: string;
@@ -18,7 +18,7 @@ export interface ChatSession {
 
 export const useChatStore = defineStore('chat', () => {
   const currentUser = ref('Jayson');
-  const chatSessions = ref<ChatSession[]>([
+  const conversations = ref<Conversation[]>([
     {
       id: '1',
       title: 'Advanced Prompt: Web Site Design',
@@ -46,7 +46,7 @@ export const useChatStore = defineStore('chat', () => {
   
   const activeChat = () => {
     if (!activeChatId.value) return null;
-    return chatSessions.value.find(chat => chat.id === activeChatId.value) || null;
+    return conversations.value.find(chat => chat.id === activeChatId.value) || null;
   };
 
   const setActiveChat = (chatId: string) => {
@@ -54,8 +54,8 @@ export const useChatStore = defineStore('chat', () => {
   };
 
   const createNewChat = () => {
-    // Create a new empty chat session
-    const newChat: ChatSession = {
+    // Create a new empty conversation
+    const newChat: Conversation = {
       id: Date.now().toString(),
       title: 'New Chat',
       timestamp: new Date(),
@@ -63,7 +63,7 @@ export const useChatStore = defineStore('chat', () => {
     };
     
     // Add the new chat to the beginning of the list
-    chatSessions.value.unshift(newChat);
+    conversations.value.unshift(newChat);
     
     // Set it as the active chat
     activeChatId.value = newChat.id;
@@ -111,7 +111,8 @@ export const useChatStore = defineStore('chat', () => {
 
   return {
     currentUser,
-    chatSessions,
+    conversations,
+    chatSessions: conversations, // For backward compatibility
     activeChatId,
     activeChat,
     setActiveChat,

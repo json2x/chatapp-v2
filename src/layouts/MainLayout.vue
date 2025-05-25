@@ -69,7 +69,7 @@
           <q-item-label header>Recent</q-item-label>
           
           <ChatItem 
-            v-for="chat in chatSessions" 
+            v-for="chat in conversations" 
             :key="chat.id" 
             :chat="chat"
             :active="activeChatId === chat.id"
@@ -133,8 +133,8 @@ const versionOptions = [
   '2.1 Lite'
 ];
 
-// Chat sessions
-const chatSessions = computed(() => chatStore.chatSessions);
+// Conversations
+const conversations = computed(() => chatStore.conversations);
 const activeChatId = computed(() => chatStore.activeChatId);
 
 // Drawer control
