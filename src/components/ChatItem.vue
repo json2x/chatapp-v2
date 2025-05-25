@@ -23,13 +23,13 @@
 </template>
 
 <script setup lang="ts">
-import type { ChatSession } from 'src/stores/chat-store';
+import type { Conversation } from 'src/stores/chat-store';
 import { useQuasar } from 'quasar';
 
 const $q = useQuasar();
 
 defineProps<{
-  chat: ChatSession;
+  chat: Conversation;
   active: boolean;
 }>();
 
