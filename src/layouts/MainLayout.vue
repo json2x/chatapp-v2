@@ -19,13 +19,14 @@
           <div class="row items-center">
             <q-select 
               class="version-select dark-mode-text" 
-              v-model="selectedVersion" 
-              :options="versionOptions" 
+              v-model="chatStore.selectedVersion" 
+              :options="chatStore.versionOptions" 
               dense 
               borderless
               dropdown-icon="mdi-chevron-down"
               :input-style="currentTheme === 'dark' ? 'color: rgba(255, 255, 255, 0.85) !important' : ''"
               style="min-width: 160px"
+              @update:model-value="handleModelChange"
             />
           </div>
         </q-toolbar-title>
@@ -153,13 +154,7 @@ const userStore = useUserStore();
 const $q = useQuasar();
 const userSession = computed(() => userStore.userSession);
 
-// Version dropdown
-const selectedVersion = ref('2.3 Pro (preview)');
-const versionOptions = [
-  '2.3 Pro (preview)',
-  '2.2 Standard',
-  '2.1 Lite'
-];
+// Version dropdown is now managed in the chat store
 
 // Conversations
 const conversations = computed(() => chatStore.conversations);
@@ -185,7 +180,15 @@ onMounted(async () => {
     applyTheme(currentTheme.value);
   }
   
-  // Fetch conversations for the current user
+  // Fetch models first
+  try {
+    await chatStore.fetchAvailableModels();
+  } catch (error) {
+    console.error('Failed to fetch available models:', error);
+    // Continue even if models fail to load, we'll use the default options
+  }
+  
+  // Then fetch conversations
   await fetchUserConversations();
 });
 
@@ -239,6 +242,11 @@ watch(currentTheme, (newTheme) => {
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
+}
+
+// Handle model selection change and save to localStorage
+function handleModelChange(newModel: string) {
+  chatStore.updateSelectedModel(newModel);
 }
 
 function setTheme(theme: ThemeType) {

@@ -2,7 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useUserStore } from './user-store';
 import { getConversationById } from 'src/services/conversationService';
-import type { Message } from 'src/types/servicesTypes';
+import { getAvailableModels } from 'src/services/modelService';
+import type { Message, AvailableModels } from 'src/types/servicesTypes';
 import { Loading, QSpinnerDots } from 'quasar';
 
 export interface ChatMessage {
@@ -59,6 +60,31 @@ export const useChatStore = defineStore('chat', () => {
   // Make isLoadingMessages writable from outside the store
   const isLoadingMessages = ref(false);
   const messageLoadError = ref<string | null>(null);
+  
+  // Model version state with localStorage caching
+  const STORAGE_KEY_SELECTED_MODEL = 'chatapp_selected_model';
+  
+  // Initialize selectedVersion from localStorage or use default
+  const getInitialSelectedVersion = (): string => {
+    const savedModel = localStorage.getItem(STORAGE_KEY_SELECTED_MODEL);
+    return savedModel || 'gpt-4o-mini';
+  };
+  
+  const selectedVersion = ref(getInitialSelectedVersion());
+  
+  // Method to update the selected model and save to localStorage
+  const updateSelectedModel = (modelValue: string) => {
+    selectedVersion.value = modelValue;
+    localStorage.setItem(STORAGE_KEY_SELECTED_MODEL, modelValue);
+  };
+  
+  const versionOptions = ref([
+    'gpt-4o-mini',
+    'gpt-4.1-mini'
+  ]);
+  const availableModels = ref<AvailableModels | null>(null);
+  const isLoadingModels = ref(false);
+  const modelLoadError = ref<string | null>(null);
 
   const setActiveChat = async (chatId: string) => {
     // Set active chat ID if not already set by handleChatSelect
@@ -193,6 +219,49 @@ export const useChatStore = defineStore('chat', () => {
       conversations.value.splice(index, 1);
     }
   };
+  
+  /**
+   * Fetches available models from the API and updates the store
+   * This populates the versionOptions array with actual model data
+   */
+  const fetchAvailableModels = async () => {
+    isLoadingModels.value = true;
+    modelLoadError.value = null;
+    
+    try {
+      // Fetch available models from the API
+      const models = await getAvailableModels();
+      availableModels.value = models;
+      
+      // Update version options based on available models
+      // This is a placeholder - you might want to format these differently
+      // based on your actual API response structure
+      if (models) {
+        const modelOptions: string[] = [];
+        
+        // Extract model names from the API response without provider prefix
+        // The API returns a structure like { openai: ["gpt-4", "gpt-3.5-turbo"], anthropic: ["claude-3"] }
+        Object.entries(models).forEach(([, providerModels]) => {
+          if (providerModels) {
+            providerModels.forEach(model => {
+              // Just add the model name without the provider prefix
+              modelOptions.push(model);
+            });
+          }
+        });
+        
+        // Only update if we got some models
+        if (modelOptions.length > 0) {
+          versionOptions.value = modelOptions;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching available models:', error);
+      modelLoadError.value = 'Failed to load available models';
+    } finally {
+      isLoadingModels.value = false;
+    }
+  };
 
   return {
     currentUser,
@@ -206,6 +275,14 @@ export const useChatStore = defineStore('chat', () => {
     removeConversation,
     chatSuggestions,
     isLoadingMessages,
-    messageLoadError
+    messageLoadError,
+    // Model version state
+    selectedVersion,
+    versionOptions,
+    availableModels,
+    isLoadingModels,
+    modelLoadError,
+    fetchAvailableModels,
+    updateSelectedModel
   };
 });
