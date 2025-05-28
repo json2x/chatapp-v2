@@ -152,26 +152,35 @@ export const useChatStore = defineStore('chat', () => {
   };
 
   const createNewChat = () => {
-    // Create a new empty conversation
-    const newChat: Conversation = {
-      id: Date.now().toString(),
-      title: 'New Chat',
-      timestamp: new Date(),
-      messages: []
-    };
+    // Instead of creating a new conversation, just unset the active conversation
+    // This will clear the chat interface
+    activeChatId.value = null;
     
-    // Add the new chat to the beginning of the list
-    conversations.value.unshift(newChat);
-    
-    // Set it as the active chat
-    activeChatId.value = newChat.id;
-    
-    return newChat;
+    return null;
   };
   
   const addMessage = (message: ChatMessage) => {
-    const chat = activeChat();
-    if (!chat) return;
+    let chat = activeChat();
+    
+    // If there's no active chat, create a new one
+    if (!chat) {
+      // Create a new conversation
+      const newChat: Conversation = {
+        id: Date.now().toString(),
+        title: 'New Chat',
+        timestamp: new Date(),
+        messages: []
+      };
+      
+      // Add the new chat to the beginning of the list
+      conversations.value.unshift(newChat);
+      
+      // Set it as the active chat
+      activeChatId.value = newChat.id;
+      
+      // Update our local reference
+      chat = newChat;
+    }
     
     // Add message to the current chat
     chat.messages.push(message);
@@ -187,6 +196,8 @@ export const useChatStore = defineStore('chat', () => {
       const titleWords = words.slice(0, Math.min(5, words.length));
       chat.title = titleWords.join(' ') + (words.length > 5 ? '...' : '');
     }
+    
+    // Message successfully added to chat
   };
 
   const chatSuggestions = ref([

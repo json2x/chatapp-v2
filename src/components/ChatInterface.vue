@@ -116,53 +116,35 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, watchEffect } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
-import { useUserStore } from 'src/stores/user-store';
+import { useQuasar } from 'quasar';
 import ChatSuggestion from './ChatSuggestion.vue';
+import { sendChatMessage, processStreamResponse } from 'src/services/chatService';
+import { getConversationById } from 'src/services/conversationService';
+import type { ChatRequest, ChatStreamResponse } from 'src/types/servicesTypes';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
-import { marked } from 'marked';
-import { QInput, useQuasar } from 'quasar';
+import { renderMarkdown } from 'src/misc/markdownRenderer';
 
 const $q = useQuasar();
 const chatStore = useChatStore();
-const userStore = useUserStore();
+
+// Reactive references
 const messageInput = ref('');
-const messagesContainer = ref<HTMLElement | null>(null);
-const inputField = ref<QInput | null>(null);
 const isProcessing = ref(false);
+const messagesContainer = ref<HTMLElement | null>(null);
+const inputField = ref<{ $el?: HTMLElement } | null>(null);
 const responseTimer = ref<number | null>(null);
 
-const userName = computed(() => userStore.userSession.fullName || 'User');
-
+// Computed properties
 const activeChat = computed(() => chatStore.activeChat());
 const messages = computed(() => activeChat.value?.messages || []);
+const userName = computed(() => chatStore.currentUser || 'User');
+const selectedModel = computed(() => chatStore.selectedVersion);
 const isLoadingMessages = computed(() => chatStore.isLoadingMessages);
 const messageLoadError = computed(() => chatStore.messageLoadError);
+const conversations = computed(() => chatStore.conversations);
 
 const chatSuggestions = computed(() => chatStore.chatSuggestions);
-
-// Sample responses for the assistant
-const assistantResponses = [
-  "I'm here to help you with any questions you might have.",
-  "That's an interesting question. Let me explain...",
-  "Here's what I found about that topic...",
-  "I'd be happy to help you with that. Here's what you need to know...",
-  "Great question! The answer is...",
-  "I appreciate your question. Here's what the research suggests on this topic...",
-  "Here's an example of how you could implement that in JavaScript:\n\n```javascript\nfunction calculateTotal(items) {\n  return items.reduce((total, item) => {\n    return total + (item.price * item.quantity);\n  }, 0);\n}\n\nconst cart = [\n  { name: 'Product 1', price: 10, quantity: 2 },\n  { name: 'Product 2', price: 15, quantity: 1 }\n];\n\nconst total = calculateTotal(cart);\nconsole.log('Total: $' + total);\n```\n\nThis function uses the reduce method to calculate the total price of all items in the cart.",
-  "You can create a simple counter in JavaScript like this:\n\n```javascript\n// Counter component using vanilla JavaScript\nconst createCounter = () => {\n  let count = 0;\n  \n  const increment = () => {\n    count++;\n    updateDisplay();\n  };\n  \n  const decrement = () => {\n    if (count > 0) {\n      count--;\n      updateDisplay();\n    }\n  };\n  \n  const updateDisplay = () => {\n    document.querySelector('.count-display').textContent = count;\n  };\n  \n  // Create the UI\n  const container = document.createElement('div');\n  container.className = 'counter';\n  container.style.display = 'flex';\n  container.style.alignItems = 'center';\n  container.style.gap = '10px';\n  \n  const decrementBtn = document.createElement('button');\n  decrementBtn.textContent = '-';\n  decrementBtn.addEventListener('click', decrement);\n  \n  const display = document.createElement('span');\n  display.className = 'count-display';\n  display.textContent = count;\n  \n  const incrementBtn = document.createElement('button');\n  incrementBtn.textContent = '+';\n  incrementBtn.addEventListener('click', increment);\n  \n  container.appendChild(decrementBtn);\n  container.appendChild(display);\n  container.appendChild(incrementBtn);\n  \n  return container;\n};\n\n// Usage\ndocument.body.appendChild(createCounter());\n```\n\nThis creates a simple counter component with increment and decrement buttons using vanilla JavaScript.",
-  "For CSS styling, you might want to use Flexbox like this:\n\n```css\n.container {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  max-width: 800px;\n  margin: 0 auto;\n}\n\n.card {\n  background-color: white;\n  border-radius: 8px;\n  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);\n  padding: 16px;\n  transition: transform 0.2s ease;\n}\n\n.card:hover {\n  transform: translateY(-4px);\n  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);\n}\n```\n\nThis creates a responsive container with card elements that have a subtle hover effect.",
-  "I understand what you're asking. Let me provide some insights...",
-  "That's a great point! Have you considered looking at it from this perspective?",
-  "I'd be happy to assist with that. Let's break it down step by step.",
-  "Based on my analysis, here's what I recommend...",
-  "I appreciate your question. Here's what the research suggests on this topic..."
-];
-
-function getRandomResponse(): string {
-  const randomIndex = Math.floor(Math.random() * assistantResponses.length);
-  return assistantResponses[randomIndex] || "I'm here to help you with any questions you might have.";
-}
 
 function applySuggestion(suggestion: { title: string, description: string }) {
   messageInput.value = `${suggestion.title} ${suggestion.description}`;
@@ -175,62 +157,184 @@ function applySuggestion(suggestion: { title: string, description: string }) {
   });
 }
 
-function sendMessage() {
+async function sendMessage() {
   if (!messageInput.value.trim() || isProcessing.value) return;
   
   const userMessage = messageInput.value.trim();
   messageInput.value = ''; // Clear input immediately
   
-  // Add user message to the chat
-  if (!activeChat.value) {
-    chatStore.createNewChat();
-  }
+  // Get the selected model from the store
+  const model = selectedModel.value;
   
-  // Add the user message
+  // Create a unique ID for the user message
+  const userMessageId = Date.now().toString();
+  
+  // The chat store will now create a new chat if needed when we add a message
+  // No need to explicitly call createNewChat()
+  
+  // Add the user message to the UI immediately
   chatStore.addMessage({
-    id: Date.now().toString(),
+    id: userMessageId,
     content: userMessage,
     sender: 'user',
     timestamp: new Date()
   });
   
-  // Scroll to bottom after message is added
+  // Scroll to bottom after user message is added
   void nextTick(() => {
     scrollToBottom();
   });
   
-  // Simulate assistant thinking/typing
+  // Show the typing indicator
   isProcessing.value = true;
   
-  // Simulate a delay before the assistant responds (between 1-3 seconds)
-  const responseDelay = Math.floor(Math.random() * 2000) + 1000;
-  
-  // Store the timer ID so we can cancel it if needed
-  responseTimer.value = window.setTimeout(() => {
-    // Only add the assistant response if we haven't cancelled
-    if (isProcessing.value) {
-      // Add assistant response
-      chatStore.addMessage({
-        id: (Date.now() + 1).toString(),
-        content: getRandomResponse(),
-        sender: 'assistant',
-        timestamp: new Date()
-      });
+  try {
+    // Prepare the chat request
+    const chatRequest: ChatRequest = {
+      model,
+      message: userMessage,
+    };
+    
+    // If there's an active conversation with a server-generated ID, include it
+    // We can identify server-generated IDs vs. temporary IDs by checking if they're numeric
+    if (activeChat.value && !(/^\d+$/.test(activeChat.value.id))) {
+      // This is a server-generated ID, so include it in the request
+      chatRequest.conversation_session_id = activeChat.value.id;
     }
     
-    isProcessing.value = false;
-    responseTimer.value = null;
+    // Send the chat message and get the stream
+    const stream = await sendChatMessage(chatRequest);
     
-    // Scroll to bottom after assistant response and focus input field
+    // Create a temporary ID for the assistant's response
+    const assistantMessageId = (Date.now() + 1).toString();
+    
+    // Add an initial empty message for the assistant that we'll update as chunks come in
+    chatStore.addMessage({
+      id: assistantMessageId,
+      content: '',
+      sender: 'assistant',
+      timestamp: new Date()
+    });
+    
+    // Assistant message added to the chat
+    
+    // Track the conversation ID from the response
+    let conversationId: string | null = null;
+    let fullContent = '';
+    
+    // Process the streaming response
+    await processStreamResponse(
+      stream,
+      (chunk: ChatStreamResponse) => {
+        // If this is the first chunk, remove the typing indicator
+        // This will show the actual content immediately instead of the loading spinner
+        if (isProcessing.value) {
+          isProcessing.value = false;
+        }
+        
+        // Update the content with each chunk
+        fullContent += chunk.content;
+        
+        // Update the assistant's message in real-time
+        const assistantMessage = activeChat.value?.messages.find(m => m.id === assistantMessageId);
+        
+        if (assistantMessage) {
+          assistantMessage.content = fullContent;
+        } else {
+          console.warn('Could not find assistant message to update');
+        }
+        
+        // If this is the first chunk with a conversation ID, store it and update the conversation
+        if (chunk.conversation_id && !conversationId) {
+          conversationId = chunk.conversation_id;
+          
+          // Check if we need to update the temporary conversation ID
+          if (activeChat.value && /^\d+$/.test(activeChat.value.id)) {
+            const oldId = activeChat.value.id;
+            
+            // Update the conversation ID in the store
+            // We need to update both the conversation object and the activeChatId
+            const tempChat = conversations.value.find(c => c.id === oldId);
+            if (tempChat) {
+              // Update the ID
+              tempChat.id = conversationId;
+              
+              // We don't need to update message conversation_id as it's not part of our ChatMessage interface
+              
+              // Update the conversation ID in the store by calling setActiveChat
+              // This will properly update the activeChatId ref
+              void chatStore.setActiveChat(conversationId);
+            }
+          }
+        }
+        
+        // Scroll to bottom as new content arrives
+        void nextTick(() => {
+          scrollToBottom();
+        });
+      },
+      () => {
+        // Stream is complete
+        // Note: isProcessing is already set to false after the first chunk
+        
+        // If this was a new conversation (no active chat before), fetch the full conversation
+        if (conversationId && (!activeChat.value || activeChat.value.id !== conversationId)) {
+          // Use void to explicitly mark the promise as ignored
+          void (async () => {
+            try {
+              // Fetch the full conversation from the conversation service
+              const fullConversation = await getConversationById(conversationId);
+              
+              // Update the store with the new conversation
+              if (fullConversation) {
+                // Set this as the active chat
+                void chatStore.setActiveChat(conversationId);
+              }
+            } catch (error) {
+              console.error('Error fetching conversation:', error);
+              $q.notify({
+                type: 'negative',
+                message: 'Failed to load the conversation. Please try again.'
+              });
+            }
+          })();
+        }
+        
+        // Focus the input field after response
+        void nextTick(() => {
+          if (inputField.value && inputField.value.$el) {
+            const input = inputField.value.$el.querySelector('input');
+            if (input) input.focus();
+          }
+        });
+      },
+      (error: Error) => {
+        // Handle stream errors
+        console.error('Stream error:', error);
+        isProcessing.value = false;
+        $q.notify({
+          type: 'negative',
+          message: 'An error occurred while processing the response.'
+        });
+      }
+    );
+  } catch (error) {
+    // Handle API errors
+    console.error('Chat API error:', error);
+    isProcessing.value = false;
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to send message. Please try again.'
+    });
+    
+    // Focus the input field after error
     void nextTick(() => {
-      scrollToBottom();
-      // Focus the input field after response
       if (inputField.value && inputField.value.$el) {
         const input = inputField.value.$el.querySelector('input');
         if (input) input.focus();
       }
     });
-  }, responseDelay);
+  }
 }
 
 function scrollToBottom() {
@@ -259,33 +363,30 @@ function stopResponse() {
   });
 }
 
-// Configure marked with highlight.js for code highlighting
-// Using only TypeScript-compatible options
-marked.setOptions({
-  breaks: true,
-  gfm: true
+// MathJax will be loaded by the external markdownRenderer module
+// We don't need to initialize it here anymore
+
+// We're now using the external renderMarkdown function from src/misc/markdownRenderer.ts
+// After rendering markdown, we need to initialize MathJax to process the math formulas
+
+// Watch for changes to the messages and initialize MathJax when needed
+watchEffect(() => {
+  // When messages change, wait for the DOM to update and then initialize MathJax
+  if (messages.value.length > 0) {
+    void nextTick(() => {
+      // Apply MathJax typesetting to all markdown content elements
+      if (window.MathJax && window.MathJax.typeset) {
+        try {
+          window.MathJax.typeset(['.markdown-content']);
+        } catch (error) {
+          console.error('Error processing MathJax:', error);
+        }
+      }
+    });
+  }
 });
 
-// Custom function to render markdown with code highlighting
-function renderMarkdown(content: string) {
-  if (!content) return '';
-  
-  // Process the content with marked
-  const html = marked.parse(content);
-  
-  // Apply highlight.js to code blocks after rendering
-  void nextTick(() => {
-    document.querySelectorAll('pre code').forEach((block) => {
-      hljs.highlightElement(block as HTMLElement);
-    });
-  });
-  
-  return html;
-}
-
-// Function already defined above
-
-// No need for this function as it's already defined above
+// Additional utility functions
 
 // Function to retry loading messages if there was an error
 const retryLoadMessages = async () => {

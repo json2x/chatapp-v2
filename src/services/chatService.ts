@@ -49,6 +49,7 @@ export async function processStreamResponse(
 ): Promise<void> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
+  let buffer = '';
   
   try {
     while (true) {
@@ -59,20 +60,50 @@ export async function processStreamResponse(
         break;
       }
       
+      // Decode the chunk and add it to our buffer
       const chunkText = decoder.decode(value, { stream: true });
+      buffer += chunkText;
       
-      try {
-        // Parse the chunk as JSON
-        const parsedChunk: ChatStreamResponse = JSON.parse(chunkText);
-        onChunk(parsedChunk);
-      } catch (parseError) {
-        // If parsing fails, pass the raw text with a minimal wrapper
-        console.warn('Failed to parse stream chunk as JSON:', parseError);
-        onChunk({
-          content: chunkText,
-          done: false,
-          error: 'Failed to parse server response'
-        });
+      // Process each line in the buffer (SSE format sends one event per line)
+      const lines = buffer.split('\n');
+      // Keep the last line in the buffer if it's not complete
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        // Skip empty lines or event type lines
+        if (!line.trim() || line.startsWith('event:')) continue;
+        
+        // Handle SSE data format (data: {...})
+        if (line.startsWith('data:')) {
+          try {
+            // Extract the JSON part after 'data:'
+            const jsonStr = line.substring(5).trim();
+            const parsedChunk: ChatStreamResponse = JSON.parse(jsonStr);
+            onChunk(parsedChunk);
+          } catch (parseError) {
+            console.warn('Failed to parse SSE data as JSON:', parseError, line);
+            // If we can't parse it as JSON, just return the content without the 'data:' prefix
+            onChunk({
+              content: line.substring(5).trim(),
+              done: false,
+              error: 'Failed to parse server response'
+            });
+          }
+        } else {
+          // Try to parse as plain JSON (non-SSE format)
+          try {
+            const parsedChunk: ChatStreamResponse = JSON.parse(line);
+            onChunk(parsedChunk);
+          } catch (parseError) {
+            // If all parsing attempts fail, just return the raw line
+            console.warn('Failed to parse stream chunk:', parseError, line);
+            onChunk({
+              content: line,
+              done: false,
+              error: 'Failed to parse server response'
+            });
+          }
+        }
       }
     }
   } catch (error) {
