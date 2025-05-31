@@ -47,6 +47,18 @@ export default defineConfigWithVueTs(
   // https://github.com/vuejs/eslint-config-typescript
   vueTsConfigs.recommendedTypeChecked,
 
+  // Add project configuration for TypeScript type checking
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parserOptions: {
+        parser: '@typescript-eslint/parser',
+        project: ['./tsconfig.json'],
+        extraFileExtensions: ['.vue']
+      }
+    }
+  },
+
   {
     languageOptions: {
       ecmaVersion: 'latest',
