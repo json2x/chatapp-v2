@@ -26,11 +26,11 @@
       
       <div class="footer-bottom">
         <p>&copy; {{ copyrightYear }} {{ appTitle }}. All rights reserved.</p>
-        <div class="social-links">
+        <!-- <div class="social-links">
           <a href="#" class="social-link" v-for="(icon, index) in socialIcons" :key="index">
             {{ icon }}
           </a>
-        </div>
+        </div> -->
       </div>
     </div>
   </footer>
@@ -49,19 +49,19 @@ const titleSplitIndex = computed(() => appStore.titleSplitIndex);
 const footerLinks = ref([
   {
     title: 'Product',
-    links: ['Features', 'Pricing', 'FAQ', 'Testimonials']
+    links: ['Features', 'Pricing', 'FAQ']
   },
   {
     title: 'Company',
-    links: ['About Us', 'Careers', 'Blog', 'Contact']
+    links: ['About Us', 'Contact']
   },
-  {
-    title: 'Resources',
-    links: ['Documentation', 'Support', 'API', 'Privacy Policy']
-  }
+  // {
+  //   title: 'Resources',
+  //   links: ['Documentation', 'Support', 'API', 'Privacy Policy']
+  // }
 ]);
 
-const socialIcons = ref(['🌐', '📱', '🐦', '📸']);
+// const socialIcons = ref(['🌐', '📱', '🐦', '📸']);
 </script>
 
 <style scoped>
