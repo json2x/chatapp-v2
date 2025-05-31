@@ -45,6 +45,10 @@
             </div>
           </div>
         </div>
+
+        <!-- <div v-else-if="messages.length > 0 && !isLoadingMessages && !messageLoadError" class="text-center">
+          {{ messages}}
+        </div> -->
         
         <!-- Chat Messages -->
         <div v-else class="chat-message-list q-pa-md">
@@ -209,14 +213,12 @@ async function sendMessage() {
     const assistantMessageId = (Date.now() + 1).toString();
     
     // Add an initial empty message for the assistant that we'll update as chunks come in
-    chatStore.addMessage({
-      id: assistantMessageId,
-      content: '',
-      sender: 'assistant',
-      timestamp: new Date()
-    });
-    
-    // Assistant message added to the chat
+    // chatStore.addMessage({
+    //   id: assistantMessageId,
+    //   content: '',
+    //   sender: 'assistant',
+    //   timestamp: new Date()
+    // });
     
     // Track the conversation ID from the response
     let conversationId: string | null = null;
@@ -236,12 +238,17 @@ async function sendMessage() {
         fullContent += chunk.content;
         
         // Update the assistant's message in real-time
-        const assistantMessage = activeChat.value?.messages.find(m => m.id === assistantMessageId);
-        
-        if (assistantMessage) {
+        let assistantMessage = activeChat.value?.messages.find(m => m.id === assistantMessageId);
+        if(!assistantMessage) {
+          chatStore.addMessage({
+            id: assistantMessageId,
+            content: '',
+            sender: 'assistant',
+            timestamp: new Date()
+          });
+          assistantMessage = activeChat.value?.messages[activeChat.value?.messages.length - 1];
+        }else{
           assistantMessage.content = fullContent;
-        } else {
-          console.warn('Could not find assistant message to update');
         }
         
         // If this is the first chunk with a conversation ID, store it and update the conversation
