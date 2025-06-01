@@ -13,14 +13,19 @@ const routes: RouteRecordRaw[] = [
     children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
     meta: { requiresAuth: true },
   },
-  
+
+  {
+    path: '/test',
+    component: () => import('pages/TestPage.vue'),
+  },
+
   // Auth callback route to handle OAuth redirects
   {
     path: '/auth/callback',
     beforeEnter: async (to, from, next) => {
       // Process the OAuth callback
       const result = await handleAuthCallback();
-      
+
       if (result.success) {
         // Redirect to chat page with clean URL
         next('/chat');

@@ -10,7 +10,7 @@ const supabase = createClient(
       persistSession: true, // Enable session persistence
       storage: localStorage, // Use localStorage for session storage
     },
-  }
+  },
 );
 
 // We'll use the user store instead of local reactive state
@@ -23,12 +23,12 @@ export const initAuth = async () => {
     const userStore = useUserStore();
     // Get the current session
     const { data } = await supabase.auth.getSession();
-    
+
     if (data.session) {
       // Update user store with session data
       updateUserStoreFromSession(data.session);
     }
-    
+
     // Set up auth state change listener
     supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
@@ -37,7 +37,7 @@ export const initAuth = async () => {
         // Reset user authentication state on sign out
         userStore.logout();
       }
-      
+
       // Handle specific auth events if needed
       if (event === 'SIGNED_IN') {
         console.log('User signed in');
@@ -45,7 +45,7 @@ export const initAuth = async () => {
         console.log('User signed out');
       }
     });
-    
+
     return { user: userStore.userSession, session: data.session };
   } catch (error) {
     console.error('Error initializing auth:', error);
@@ -58,6 +58,7 @@ export const initAuth = async () => {
  */
 export const login = () => {
   // Use a dedicated auth callback route instead of directly redirecting to /chat
+  console.log('callback:', window.location.origin + '/auth/callback');
   void supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -74,28 +75,28 @@ export const handleAuthCallback = async () => {
   try {
     // Get the current URL hash
     const hash = window.location.hash;
-    
+
     // Check if we have auth parameters in the URL
     if (hash && hash.includes('access_token')) {
       // Process the hash to get the session
       const { data, error } = await supabase.auth.getSession();
-      
+
       if (error) {
         console.error('Error getting session:', error);
         return { success: false, error };
       }
-      
+
       if (data.session) {
         // Update user store with session data
         updateUserStoreFromSession(data.session);
-        
+
         // Clean up the URL by replacing the current history entry
         window.history.replaceState(null, '', '/chat');
-        
+
         return { success: true, session: data.session };
       }
     }
-    
+
     return { success: false, error: 'No session found' };
   } catch (error) {
     console.error('Error handling auth callback:', error);
@@ -152,7 +153,7 @@ export const checkAuth = async (): Promise<boolean> => {
   if (userStore.userSession.isAuthenticated) {
     return true;
   }
-  
+
   try {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
@@ -172,7 +173,7 @@ export const checkAuth = async (): Promise<boolean> => {
 const updateUserStoreFromSession = (session: Session) => {
   const userStore = useUserStore();
   const user = session.user;
-  
+
   if (user) {
     // Extract user metadata from Supabase user object
     const userData = {
@@ -181,16 +182,20 @@ const updateUserStoreFromSession = (session: Session) => {
       isAuthenticated: true,
       // Use user identity data if available (from OAuth providers)
       fullName: user.user_metadata?.full_name || user.user_metadata?.name || 'User',
-      username: user.user_metadata?.preferred_username || user.user_metadata?.email || user.email || 'user',
+      username:
+        user.user_metadata?.preferred_username || user.user_metadata?.email || user.email || 'user',
       // Get avatar URL from OAuth provider if available
-      avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || 'https://cdn.quasar.dev/img/boy-avatar.png',
+      avatarUrl:
+        user.user_metadata?.avatar_url ||
+        user.user_metadata?.picture ||
+        'https://cdn.quasar.dev/img/boy-avatar.png',
       // Preserve existing roles if they exist
       roles: userStore.userSession.roles || ['user'],
       // Preserve existing preferences if they exist
       preferences: userStore.userSession.preferences || {
         theme: 'light',
         notifications: true,
-        language: 'en-US'
+        language: 'en-US',
       },
       // Update metadata with session info
       metadata: {
@@ -199,17 +204,19 @@ const updateUserStoreFromSession = (session: Session) => {
         provider: user.app_metadata?.provider || 'email',
         // Add additional OAuth provider details if available
         providerId: user.app_metadata?.provider_id || null,
-        lastSignInTime: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null
-      }
+        lastSignInTime: session.expires_at
+          ? new Date(session.expires_at * 1000).toISOString()
+          : null,
+      },
     };
-    
-    console.log('Updating user session with data from Supabase:', { 
+
+    console.log('Updating user session with data from Supabase:', {
       id: userData.id,
       email: userData.email,
       fullName: userData.fullName,
-      avatarUrl: userData.avatarUrl
+      avatarUrl: userData.avatarUrl,
     });
-    
+
     // Update the user store
     userStore.login(userData);
   }
