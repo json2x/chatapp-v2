@@ -8,6 +8,38 @@ import { API_BASE_URL, API_ENDPOINTS } from '../misc/constants';
 export { API_BASE_URL, API_ENDPOINTS };
 
 /**
+ * Gets the authorization headers with the access token from Supabase session in localStorage
+ * @returns Headers object with Authorization header if token exists
+ */
+export function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Supabase stores session in localStorage with key 'sb-<project-ref>-auth-token'
+  // Find the Supabase session key
+  const supabaseKey = Object.keys(localStorage).find(key => 
+    key.startsWith('sb-') && key.endsWith('-auth-token')
+  );
+  
+  if (supabaseKey) {
+    try {
+      // Parse the session data from localStorage
+      const sessionData = JSON.parse(localStorage.getItem(supabaseKey) || '');
+      const accessToken = sessionData?.access_token;
+      
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+    } catch (error) {
+      console.error('Error retrieving Supabase access token:', error);
+    }
+  }
+  
+  return headers;
+}
+
+/**
  * Helper function to handle API errors
  * @param response Fetch response object
  * @param errorMessage Custom error message

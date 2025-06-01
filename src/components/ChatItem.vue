@@ -9,8 +9,13 @@
   >
     <q-item-section>
       <q-item-label lines="1" class="chat-title">{{ chat.title }}</q-item-label>
-      <q-item-label caption lines="1" v-if="chat.lastMessage" class="chat-preview">
-        {{ chat.lastMessage }}
+      <q-item-label caption lines="1" class="chat-preview">
+        <template v-if="chat.subtitle === '...'">
+          <q-spinner-dots size="xs" color="grey-7" class="q-mr-xs" />
+        </template>
+        <template v-else>
+          {{ chat.subtitle || 'New conversation' }}
+        </template>
       </q-item-label>
     </q-item-section>
 
@@ -19,9 +24,9 @@
         <q-item-label caption v-if="chat.timestamp" class="chat-time q-mb-sm">
           {{ formatTime(chat.timestamp) }}
         </q-item-label>
-        <q-icon 
-          name="mdi-trash-can-outline" 
-          color="grey-7" 
+        <q-icon
+          name="mdi-trash-can-outline"
+          color="grey-7"
           size="sm"
           class="trash-icon"
           @click.stop="$emit('delete', chat.id)"
@@ -52,7 +57,7 @@ function formatTime(date: Date): string {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  
+
   // Format the date based on how recent it is
   if (date.toDateString() === today.toDateString()) {
     // Today - show time only
@@ -109,7 +114,7 @@ function formatTime(date: Date): string {
 
 .trash-icon:hover {
   opacity: 1 !important;
-  color: #F44336 !important; /* Red/danger color */
+  color: #f44336 !important; /* Red/danger color */
   background-color: rgba(244, 67, 54, 0.1); /* Light red background */
   transform: scale(1.1);
 }

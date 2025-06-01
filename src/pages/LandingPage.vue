@@ -1,32 +1,49 @@
 <template>
   <div class="landing-page">
     <header class="header">
-      <div class="logo">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></div>
+      <div class="logo">
+        {{ appTitle.slice(0, -titleSplitIndex)
+        }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span>
+      </div>
       <nav class="nav-menu">
         <a href="#hero" class="nav-link" @click.prevent="scrollToSection('hero')">Home</a>
         <a href="#pricing" class="nav-link" @click.prevent="scrollToSection('pricing')">Pricing</a>
-        <a href="#features" class="nav-link" @click.prevent="scrollToSection('features')">Features</a>
+        <a href="#features" class="nav-link" @click.prevent="scrollToSection('features')"
+          >Features</a
+        >
         <a href="#about" class="nav-link" @click.prevent="scrollToSection('about')">About</a>
       </nav>
       <div class="auth-buttons">
-        <button class="login-btn">Log In</button>
-        <button class="signup-btn">Sign Up</button>
+        <button class="login-btn" @click="login">Log In</button>
       </div>
       <button class="mobile-menu-btn" @click="toggleMobileMenu">
-        <div class="menu-icon" :class="{ 'open': mobileMenuOpen }">
+        <div class="menu-icon" :class="{ open: mobileMenuOpen }">
           <span></span>
           <span></span>
           <span></span>
         </div>
       </button>
-      <div class="mobile-menu" :class="{ 'open': mobileMenuOpen }">
-        <div class="mobile-logo">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></div>
-        <a href="#hero" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('hero')">Home</a>
-        <a href="#pricing" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('pricing')">Pricing</a>
-        <a href="#features" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('features')">Features</a>
-        <a href="#about" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('about')">About</a>
-        <button class="mobile-login-btn">Log In</button>
-        <button class="mobile-signup-btn">Sign Up</button>
+      <div class="mobile-menu" :class="{ open: mobileMenuOpen }">
+        <div class="mobile-logo">
+          {{ appTitle.slice(0, -titleSplitIndex)
+          }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span>
+        </div>
+        <a href="#hero" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('hero')"
+          >Home</a
+        >
+        <a href="#pricing" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('pricing')"
+          >Pricing</a
+        >
+        <a
+          href="#features"
+          class="mobile-nav-link"
+          @click.prevent="scrollToSectionMobile('features')"
+          >Features</a
+        >
+        <a href="#about" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('about')"
+          >About</a
+        >
+        <button class="mobile-login-btn" @click="login">Log In</button>
       </div>
     </header>
 
@@ -51,6 +68,7 @@ import PricingSection from '../components/landingPage/PricingSection.vue';
 import FeaturesSection from '../components/landingPage/FeaturesSection.vue';
 import AboutSection from '../components/landingPage/AboutSection.vue';
 import FooterSection from '../components/landingPage/FooterSection.vue';
+import { login } from '../services/auth';
 
 const appStore = useAppStore();
 const appTitle = computed(() => appStore.title);
@@ -88,7 +106,18 @@ const scrollToSectionMobile = (sectionId: string) => {
 
 <style scoped>
 .landing-page {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif;
   color: #1f2937;
   line-height: 1.5;
 }
@@ -115,7 +144,7 @@ const scrollToSectionMobile = (sectionId: string) => {
 }
 
 .highlight {
-  background: linear-gradient(90deg, #1976D2, #42A5F5);
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -141,7 +170,7 @@ const scrollToSectionMobile = (sectionId: string) => {
   left: 0;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, #1976D2, #42A5F5);
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
   transition: width 0.3s ease;
 }
 
@@ -161,30 +190,18 @@ const scrollToSectionMobile = (sectionId: string) => {
 .login-btn {
   padding: 0.5rem 1.25rem;
   border: none;
-  background-color: transparent;
-  color: #4b5563;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.login-btn:hover {
-  color: #1f2937;
-}
-
-.signup-btn {
-  padding: 0.5rem 1.25rem;
-  border: none;
   border-radius: 50px;
-  background: linear-gradient(90deg, #1976D2, #42A5F5);
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
   color: white;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   box-shadow: 0 2px 10px rgba(25, 118, 210, 0.3);
 }
 
-.signup-btn:hover {
+.login-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
@@ -285,21 +302,9 @@ const scrollToSectionMobile = (sectionId: string) => {
 .mobile-login-btn {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background-color: transparent;
-  color: #4b5563;
-  font-weight: 500;
-  font-size: 1rem;
-  margin-top: 1rem;
-}
-
-.mobile-signup-btn {
-  width: 100%;
-  padding: 0.75rem;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(90deg, #1976D2, #42A5F5);
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
   color: white;
   font-weight: 500;
   font-size: 1rem;
@@ -311,14 +316,15 @@ main {
 }
 
 @media (max-width: 768px) {
-  .nav-menu, .auth-buttons {
+  .nav-menu,
+  .auth-buttons {
     display: none;
   }
-  
+
   .mobile-menu-btn {
     display: block;
   }
-  
+
   .mobile-menu {
     display: flex;
   }

@@ -5,7 +5,9 @@ import {
   createWebHashHistory,
   createWebHistory,
 } from 'vue-router';
+import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 import routes from './routes';
+import { checkAuth } from 'src/services/auth';
 
 /*
  * If not building with SSR mode, you can
@@ -29,6 +31,26 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE),
+  });
+
+  // Global navigation guard to check authentication
+  Router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    // Check if the route requires authentication
+    const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+    
+    if (requiresAuth) {
+      // Check if user is authenticated
+      const isAuthenticated = await checkAuth();
+      
+      if (!isAuthenticated) {
+        // If not authenticated, redirect to landing page
+        next({ path: '/' });
+        return;
+      }
+    }
+    
+    // Continue navigation
+    next();
   });
 
   return Router;

@@ -4,7 +4,7 @@ import type {
   DeleteResponse, 
   PaginationParams 
 } from '../types/servicesTypes';
-import { API_BASE_URL, buildUrl } from './apiUtils';
+import { API_BASE_URL, buildUrl, getAuthHeaders } from './apiUtils';
 
 
 
@@ -20,7 +20,9 @@ export async function getConversations(userId: string, params?: Omit<PaginationP
     const queryParams = { ...params, user_id: userId };
     const url = buildUrl('/conversations', queryParams);
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch conversations: ${response.status} ${response.statusText}`);
@@ -41,7 +43,9 @@ export async function getConversations(userId: string, params?: Omit<PaginationP
 export async function getConversationById(conversationId: string): Promise<Conversation> {
   try {
     const url = `${API_BASE_URL}/conversations/${conversationId}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch conversation: ${response.status} ${response.statusText}`);
@@ -64,6 +68,7 @@ export async function deleteConversation(conversationId: string): Promise<Delete
     const url = `${API_BASE_URL}/conversations/${conversationId}`;
     const response = await fetch(url, {
       method: 'DELETE',
+      headers: getAuthHeaders()
     });
     
     if (!response.ok) {

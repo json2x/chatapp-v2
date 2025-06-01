@@ -14,13 +14,12 @@ export interface Message {
 export interface ConversationSummary {
   id: string;
   title: string;
+  subtitle: string | null;
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
   user_id: string | null;
   model: string;
   system_prompt: string | null;
-  first_user_message: string | null;
-  first_assistant_message: string | null;
   message_count: number;
   metadata: Record<string, unknown> | null;
 }
@@ -29,13 +28,12 @@ export interface ConversationSummary {
 export interface Conversation {
   id: string;
   title: string;
+  subtitle: string | null;
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
   user_id: string | null;
   model: string;
   system_prompt: string | null;
-  first_user_message: string | null;
-  first_assistant_message: string | null;
   messages: Message[];
   message_count?: number | null;
   metadata: Record<string, unknown> | null;
@@ -50,7 +48,7 @@ export interface DeleteResponse {
 export interface ChatRequest {
   model: string;
   message: string;
-  conversation_session_id?: string | null;
+  conversation_id?: string | null;
   system_prompt?: string | null;
   summarize_history?: boolean | null;
   title?: string | null;

@@ -10,33 +10,23 @@
             <div class="q-mt-md text-subtitle1 text-grey-5">Loading conversation...</div>
           </div>
         </div>
-        
+
         <!-- Error state for messages -->
         <div v-else-if="messageLoadError" class="text-center q-pa-xl">
           <q-icon name="mdi-alert-circle" color="negative" size="3em" />
           <div class="q-mt-md text-subtitle1 text-negative">{{ messageLoadError }}</div>
-          <q-btn 
-            flat 
-            color="primary" 
-            label="Retry" 
-            class="q-mt-md" 
-            @click="retryLoadMessages"
-          />
+          <q-btn flat color="primary" label="Retry" class="q-mt-md" @click="retryLoadMessages" />
         </div>
-        
+
         <!-- Empty state / Welcome screen -->
         <div v-else-if="messages.length === 0" class="text-center">
           <div class="text-h4 welcome-message gradient-text">Hello, {{ userName }}</div>
-          
+
           <!-- Chat Suggestions -->
           <div class="suggestion-container q-mt-xl">
             <div class="row q-col-gutter-md justify-center">
-              <div 
-                v-for="suggestion in chatSuggestions" 
-                :key="suggestion.id"
-                class="col-auto"
-              >
-                <ChatSuggestion 
+              <div v-for="suggestion in chatSuggestions" :key="suggestion.id" class="col-auto">
+                <ChatSuggestion
                   :title="suggestion.title"
                   :description="suggestion.description"
                   @select="applySuggestion(suggestion)"
@@ -49,7 +39,7 @@
         <!-- <div v-else-if="messages.length > 0 && !isLoadingMessages && !messageLoadError" class="text-center">
           {{ messages}}
         </div> -->
-        
+
         <!-- Chat Messages -->
         <div v-else class="chat-message-list q-pa-md">
           <q-chat-message
@@ -57,8 +47,24 @@
             :key="index"
             :name="message.sender === 'user' ? userName : 'Assistant'"
             :sent="message.sender === 'user'"
-            :bg-color="message.sender === 'user' ? ($q.dark.isActive ? 'grey-8' : 'grey-3') : ($q.dark.isActive ? 'transparent' : 'white')"
-            :text-color="message.sender === 'user' ? ($q.dark.isActive ? 'white' : 'black') : ($q.dark.isActive ? 'white' : 'black')"
+            :bg-color="
+              message.sender === 'user'
+                ? $q.dark.isActive
+                  ? 'grey-8'
+                  : 'grey-3'
+                : $q.dark.isActive
+                  ? 'transparent'
+                  : 'white'
+            "
+            :text-color="
+              message.sender === 'user'
+                ? $q.dark.isActive
+                  ? 'white'
+                  : 'black'
+                : $q.dark.isActive
+                  ? 'white'
+                  : 'black'
+            "
             class="q-mb-md custom-chat-message"
           >
             <div v-if="message.sender === 'user'">
@@ -66,7 +72,7 @@
             </div>
             <div v-else v-html="renderMarkdown(message.content)" class="markdown-content"></div>
           </q-chat-message>
-          
+
           <!-- Assistant typing indicator -->
           <div v-if="isProcessing" class="typing-indicator q-mb-md">
             <q-chat-message
@@ -81,7 +87,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Input Area -->
     <div class="q-px-md q-pt-md q-pb-xl chat-input">
       <div class="row items-center chat-input-container">
@@ -120,6 +126,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, watchEffect } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
+import { useUserStore } from 'src/stores/user-store';
 import { useQuasar } from 'quasar';
 import ChatSuggestion from './ChatSuggestion.vue';
 import { sendChatMessage, processStreamResponse } from 'src/services/chatService';
@@ -131,6 +138,7 @@ import { renderMarkdown } from 'src/misc/markdownRenderer';
 
 const $q = useQuasar();
 const chatStore = useChatStore();
+const userStore = useUserStore();
 
 // Reactive references
 const messageInput = ref('');
@@ -142,7 +150,7 @@ const responseTimer = ref<number | null>(null);
 // Computed properties
 const activeChat = computed(() => chatStore.activeChat());
 const messages = computed(() => activeChat.value?.messages || []);
-const userName = computed(() => chatStore.currentUser || 'User');
+const userName = computed(() => userStore.userSession.fullName || 'User');
 const selectedModel = computed(() => chatStore.selectedVersion);
 const isLoadingMessages = computed(() => chatStore.isLoadingMessages);
 const messageLoadError = computed(() => chatStore.messageLoadError);
@@ -150,7 +158,7 @@ const conversations = computed(() => chatStore.conversations);
 
 const chatSuggestions = computed(() => chatStore.chatSuggestions);
 
-function applySuggestion(suggestion: { title: string, description: string }) {
+function applySuggestion(suggestion: { title: string; description: string }) {
   messageInput.value = `${suggestion.title} ${suggestion.description}`;
   // Focus on the input after applying suggestion
   void nextTick(() => {
@@ -163,55 +171,60 @@ function applySuggestion(suggestion: { title: string, description: string }) {
 
 async function sendMessage() {
   if (!messageInput.value.trim() || isProcessing.value) return;
-  
+
   const userMessage = messageInput.value.trim();
   messageInput.value = ''; // Clear input immediately
-  
+
   // Get the selected model from the store
   const model = selectedModel.value;
-  
+
   // Create a unique ID for the user message
   const userMessageId = Date.now().toString();
-  
+
   // The chat store will now create a new chat if needed when we add a message
   // No need to explicitly call createNewChat()
-  
+
   // Add the user message to the UI immediately
   chatStore.addMessage({
     id: userMessageId,
     content: userMessage,
     sender: 'user',
-    timestamp: new Date()
+    timestamp: new Date(),
   });
   
+  // Set the subtitle to a three-dot spinner
+  if (activeChat.value) {
+    activeChat.value.subtitle = '...'; // Will be displayed as three dots
+  }
+
   // Scroll to bottom after user message is added
   void nextTick(() => {
     scrollToBottom();
   });
-  
+
   // Show the typing indicator
   isProcessing.value = true;
-  
+
   try {
     // Prepare the chat request
     const chatRequest: ChatRequest = {
       model,
       message: userMessage,
     };
-    
+
     // If there's an active conversation with a server-generated ID, include it
     // We can identify server-generated IDs vs. temporary IDs by checking if they're numeric
-    if (activeChat.value && !(/^\d+$/.test(activeChat.value.id))) {
+    if (activeChat.value && !/^\d+$/.test(activeChat.value.id)) {
       // This is a server-generated ID, so include it in the request
-      chatRequest.conversation_session_id = activeChat.value.id;
+      chatRequest.conversation_id = activeChat.value.id;
     }
-    
+
     // Send the chat message and get the stream
     const stream = await sendChatMessage(chatRequest);
-    
+
     // Create a temporary ID for the assistant's response
     const assistantMessageId = (Date.now() + 1).toString();
-    
+
     // Add an initial empty message for the assistant that we'll update as chunks come in
     // chatStore.addMessage({
     //   id: assistantMessageId,
@@ -219,11 +232,11 @@ async function sendMessage() {
     //   sender: 'assistant',
     //   timestamp: new Date()
     // });
-    
+
     // Track the conversation ID from the response
     let conversationId: string | null = null;
     let fullContent = '';
-    
+
     // Process the streaming response
     await processStreamResponse(
       stream,
@@ -233,48 +246,53 @@ async function sendMessage() {
         if (isProcessing.value) {
           isProcessing.value = false;
         }
-        
+
         // Update the content with each chunk
         fullContent += chunk.content;
-        
+
         // Update the assistant's message in real-time
-        let assistantMessage = activeChat.value?.messages.find(m => m.id === assistantMessageId);
-        if(!assistantMessage) {
+        let assistantMessage = activeChat.value?.messages.find((m) => m.id === assistantMessageId);
+        if (!assistantMessage) {
           chatStore.addMessage({
             id: assistantMessageId,
-            content: '',
+            content: fullContent, // Use the current content instead of empty string
             sender: 'assistant',
-            timestamp: new Date()
+            timestamp: new Date(),
           });
           assistantMessage = activeChat.value?.messages[activeChat.value?.messages.length - 1];
-        }else{
+        } else {
           assistantMessage.content = fullContent;
+          
+          // Manually update the subtitle in the active chat
+          if (activeChat.value) {
+            activeChat.value.subtitle = fullContent;
+          }
         }
-        
+
         // If this is the first chunk with a conversation ID, store it and update the conversation
         if (chunk.conversation_id && !conversationId) {
           conversationId = chunk.conversation_id;
-          
+
           // Check if we need to update the temporary conversation ID
           if (activeChat.value && /^\d+$/.test(activeChat.value.id)) {
             const oldId = activeChat.value.id;
-            
+
             // Update the conversation ID in the store
             // We need to update both the conversation object and the activeChatId
-            const tempChat = conversations.value.find(c => c.id === oldId);
+            const tempChat = conversations.value.find((c) => c.id === oldId);
             if (tempChat) {
               // Update the ID
               tempChat.id = conversationId;
-              
+
               // We don't need to update message conversation_id as it's not part of our ChatMessage interface
-              
+
               // Update the conversation ID in the store by calling setActiveChat
               // This will properly update the activeChatId ref
               void chatStore.setActiveChat(conversationId);
             }
           }
         }
-        
+
         // Scroll to bottom as new content arrives
         void nextTick(() => {
           scrollToBottom();
@@ -283,7 +301,7 @@ async function sendMessage() {
       () => {
         // Stream is complete
         // Note: isProcessing is already set to false after the first chunk
-        
+
         // If this was a new conversation (no active chat before), fetch the full conversation
         if (conversationId && (!activeChat.value || activeChat.value.id !== conversationId)) {
           // Use void to explicitly mark the promise as ignored
@@ -291,7 +309,7 @@ async function sendMessage() {
             try {
               // Fetch the full conversation from the conversation service
               const fullConversation = await getConversationById(conversationId);
-              
+
               // Update the store with the new conversation
               if (fullConversation) {
                 // Set this as the active chat
@@ -300,13 +318,13 @@ async function sendMessage() {
             } catch (error) {
               console.error('Error fetching conversation:', error);
               $q.notify({
-                type: 'negative',
-                message: 'Failed to load the conversation. Please try again.'
+                icon: 'mdi-alert-circle',
+                message: 'Failed to load the conversation. Please try again.',
               });
             }
           })();
         }
-        
+
         // Focus the input field after response
         void nextTick(() => {
           if (inputField.value && inputField.value.$el) {
@@ -320,20 +338,20 @@ async function sendMessage() {
         console.error('Stream error:', error);
         isProcessing.value = false;
         $q.notify({
-          type: 'negative',
-          message: 'An error occurred while processing the response.'
+          icon: 'mdi-alert-circle',
+          message: 'An error occurred while processing the response.',
         });
-      }
+      },
     );
   } catch (error) {
     // Handle API errors
     console.error('Chat API error:', error);
     isProcessing.value = false;
     $q.notify({
-      type: 'negative',
-      message: 'Failed to send message. Please try again.'
+      icon: 'mdi-alert-circle',
+      message: 'Failed to send message. Please try again.',
     });
-    
+
     // Focus the input field after error
     void nextTick(() => {
       if (inputField.value && inputField.value.$el) {
@@ -357,10 +375,10 @@ function stopResponse() {
     window.clearTimeout(responseTimer.value);
     responseTimer.value = null;
   }
-  
+
   // Reset processing state immediately
   isProcessing.value = false;
-  
+
   // Focus the input field after stopping
   void nextTick(() => {
     if (inputField.value && inputField.value.$el) {
@@ -406,28 +424,28 @@ onMounted(() => {
   if (activeChat.value) {
     scrollToBottom();
   }
-  
+
   // Set up scroll event listener for showing/hiding scrollbar
   const messagesEl = messagesContainer.value;
   if (messagesEl) {
     let scrollTimer: number | null = null;
-    
+
     messagesEl.addEventListener('scroll', () => {
       // Add class while scrolling
       messagesEl.classList.add('scrolling');
-      
+
       // Clear previous timeout
       if (scrollTimer) {
         window.clearTimeout(scrollTimer);
       }
-      
+
       // Set timeout to remove class after scrolling stops
       scrollTimer = window.setTimeout(() => {
         messagesEl.classList.remove('scrolling');
       }, 1000); // Hide scrollbar 1 second after scrolling stops
     });
   }
-  
+
   // Apply syntax highlighting to code blocks after DOM updates
   watchEffect(() => {
     if (messages.value.length > 0) {
@@ -441,8 +459,6 @@ onMounted(() => {
 });
 </script>
 
-
-
 <style scoped>
 .chat-interface {
   height: 100%;
@@ -451,42 +467,56 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   transition: background-color 0.3s ease;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif;
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
   position: relative;
-  
+
   /* Always allocate space for scrollbar to prevent layout shifts */
   &::-webkit-scrollbar {
     width: 6px;
     background: transparent;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: transparent;
     border: none;
     margin-right: 6px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background-color: transparent;
     border-radius: 4px;
   }
-  
+
   /* Only show scrollbar when actively scrolling */
   &.scrolling::-webkit-scrollbar-thumb {
-    background-color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.2)');
+    background-color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.5)': 'rgba(0, 0, 0, 0.2)');
   }
-  
+
   /* Firefox - allocate space but make it transparent when not scrolling */
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   &.scrolling {
-    scrollbar-color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.5) transparent' : 'rgba(0, 0, 0, 0.2) transparent');
+    scrollbar-color: v-bind(
+      $q.dark.isActive ? 'rgba(255, 255, 255, 0.5) transparent': 'rgba(0, 0, 0, 0.2) transparent'
+    );
   }
-  
+
   /* Add padding to ensure content doesn't shift */
   padding-right: 6px;
 }
@@ -508,15 +538,30 @@ onMounted(() => {
 
 .welcome-message {
   margin-top: 20vh;
-  font-weight: 400;
+  font-weight: 800;
   margin-bottom: 8rem;
+  letter-spacing: -0.05em;
 }
 
 .gradient-text {
-  background: linear-gradient(to right, #2196f3 30%, #3f51b5 45%, #e91e63 55%, #9c27b0 65%, #2196f3 80%);
+  background: linear-gradient(135deg, #e63946, #1976d2, #ffffff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  background-size: 400% 400%;
+  animation: gradientBackground 15s ease infinite;
+}
+
+@keyframes gradientBackground {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .suggestion-container {
@@ -538,7 +583,7 @@ onMounted(() => {
 
 .chat-prompt-input {
   border-radius: 8px; /* Less rounded corners for a more box-like shape */
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Style for the input field with primary color border */
@@ -557,6 +602,28 @@ onMounted(() => {
 
 .loading-content {
   text-align: center;
+}
+
+.chat-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.logout-btn {
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: rgba(25, 118, 210, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Dark mode styling for header */
+.q-dark .chat-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 30, 30, 0.95);
 }
 
 /* Style for the icons to match primary color */
@@ -584,21 +651,21 @@ onMounted(() => {
     background-color: #2c2c2c !important;
     border-color: rgba(255, 255, 255, 0.7) !important;
   }
-  
+
   :deep(.q-field--outlined.q-field--focused .q-field__control),
   :deep(.q-field--outlined.q-field--highlighted .q-field__control) {
     border-color: white !important;
     border: 2px solid white !important;
   }
-  
+
   :deep(.q-field__native) {
     color: rgba(255, 255, 255, 0.9) !important;
   }
-  
+
   .primary-icon {
     color: white !important;
   }
-  
+
   .primary-icon:hover {
     background-color: rgba(255, 255, 255, 0.2) !important;
   }
@@ -620,16 +687,16 @@ onMounted(() => {
 }
 
 .stop-button {
-  color: #f44336; /* Red color for stop button */
+  color: rgba(244, 67, 54, 0.85); /* Lighter red color with opacity for stop button */
   transition: all 0.2s ease;
-  background-color: rgba(244, 67, 54, 0.1); /* Very transparent red background */
   border-radius: 50%;
-  padding: 4px;
+  padding: 3px; /* Reduced from 4px */
+  font-size: 0.8em; /* Make icon 20% smaller */
 }
 
 .stop-button:hover {
   transform: scale(1.1);
-  background-color: rgba(244, 67, 54, 0.2); /* Slightly more visible on hover */
+  color: #f44336; /* Full red color on hover */
 }
 
 .stop-button-container {
@@ -641,11 +708,11 @@ onMounted(() => {
 
 .rotating-overlay {
   position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  top: -3px; /* Reduced from -4px */
+  left: -3px; /* Reduced from -4px */
+  right: -3px; /* Reduced from -4px */
+  bottom: -3px; /* Reduced from -4px */
+  border: 1.6px solid rgba(255, 255, 255, 0.2); /* Reduced from 2px */
   border-radius: 50%;
   border-top-color: rgba(244, 67, 54, 0.6); /* Semi-transparent red matching the stop button */
   animation: rotate-animation 1.5s linear infinite;
@@ -666,17 +733,21 @@ onMounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .custom-chat-message :deep(.q-message__name) {
-  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)' : 'rgb(0, 0, 0)') !important;
+  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)': 'rgb(0, 0, 0)') !important;
   opacity: 0.5 !important;
 }
 
 .custom-chat-message :deep(.q-message-name) {
-  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)' : 'rgb(0, 0, 0)') !important;
+  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)': 'rgb(0, 0, 0)') !important;
   opacity: 0.5 !important;
 }
 
@@ -694,7 +765,7 @@ onMounted(() => {
 }
 
 :deep(.q-message-text--received) {
-  background-color: v-bind($q.dark.isActive ? 'var(--q-dark-page)' : 'white') !important;
+  background-color: v-bind($q.dark.isActive ? 'var(--q-dark-page)': 'white') !important;
 }
 
 /* Markdown content styling */
@@ -729,7 +800,8 @@ onMounted(() => {
   border-radius: 0;
 }
 
-.markdown-content ul, .markdown-content ol {
+.markdown-content ul,
+.markdown-content ol {
   margin-bottom: 1em;
   padding-left: 2em;
 }

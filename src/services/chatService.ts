@@ -2,7 +2,7 @@ import type {
   ChatRequest, 
   ChatStreamResponse 
 } from '../types/servicesTypes';
-import { API_BASE_URL } from './apiUtils';
+import { API_BASE_URL, getAuthHeaders } from './apiUtils';
 
 
 
@@ -16,9 +16,7 @@ export async function sendChatMessage(chatRequest: ChatRequest): Promise<Readabl
     const url = `${API_BASE_URL}/chat`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(chatRequest),
     });
     

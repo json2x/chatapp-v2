@@ -8,26 +8,24 @@ export const mockConversationSummaries = [
   {
     id: 'conv-1',
     title: 'Test Conversation 1',
+    subtitle: 'A conversation about general assistance',
     created_at: '2025-05-20T12:00:00Z',
     updated_at: '2025-05-20T12:30:00Z',
     user_id: 'user-1',
     model: 'gpt-4',
     system_prompt: 'You are a helpful assistant',
-    first_user_message: 'Hello',
-    first_assistant_message: 'Hi there! How can I help you today?',
     message_count: 2,
     metadata: null
   },
   {
     id: 'conv-2',
     title: 'Test Conversation 2',
+    subtitle: 'A conversation with Claude',
     created_at: '2025-05-21T14:00:00Z',
     updated_at: '2025-05-21T14:45:00Z',
     user_id: 'user-1',
     model: 'claude-3',
     system_prompt: 'You are a helpful assistant',
-    first_user_message: 'Hi Claude',
-    first_assistant_message: 'Hello! I\'m Claude. How can I assist you?',
     message_count: 3,
     metadata: { tags: ['important'] }
   }
@@ -36,13 +34,12 @@ export const mockConversationSummaries = [
 export const mockConversation = {
   id: 'conv-1',
   title: 'Test Conversation 1',
+  subtitle: 'A conversation about general assistance',
   created_at: '2025-05-20T12:00:00Z',
   updated_at: '2025-05-20T12:30:00Z',
   user_id: 'user-1',
   model: 'gpt-4',
   system_prompt: 'You are a helpful assistant',
-  first_user_message: 'Hello',
-  first_assistant_message: 'Hi there! How can I help you today?',
   messages: [
     {
       id: 'msg-1',
@@ -123,7 +120,7 @@ export const handlers = [
   }),
   
   // Chat handler
-  http.post(`${API_BASE_URL}/chat`, async () => {
+  http.post(`${API_BASE_URL}/chat`, () => {
     // For streaming responses, we'll simulate with a simple response
     return HttpResponse.json({
       content: 'This is a response from the mock API',

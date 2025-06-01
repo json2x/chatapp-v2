@@ -3,14 +3,14 @@ import { ref } from 'vue';
 import type { UserSession } from 'src/types/userStore';
 
 export const useUserStore = defineStore('user', () => {
-  // Mock user session data that would typically come from an auth provider
+  // Initialize with default values that will be updated from Supabase session
   const userSession = ref<UserSession>({
-    id: 'usr_123456789',
-    username: 'jayson_millan',
-    email: 'jayson.millan@example.com',
-    fullName: 'Jayson Millan',
-    avatarUrl: 'https://cdn.quasar.dev/img/boy-avatar.png', // Using the existing avatar
-    isAuthenticated: true,
+    id: '',
+    username: '',
+    email: '',
+    fullName: '',
+    avatarUrl: 'https://cdn.quasar.dev/img/boy-avatar.png', // Default avatar
+    isAuthenticated: false,
     roles: ['user'],
     preferences: {
       theme: 'light',
@@ -19,30 +19,43 @@ export const useUserStore = defineStore('user', () => {
     },
     metadata: {
       lastLogin: new Date().toISOString(),
-      accountCreated: '2023-01-15T08:30:00Z',
-      subscription: 'premium'
     }
   });
 
   // Function to update user preferences
   const updatePreferences = (preferences: Partial<UserSession['preferences']>) => {
-    userSession.value.preferences = {
-      ...userSession.value.preferences,
-      ...preferences
-    };
+    if (userSession.value && userSession.value.preferences) {
+      userSession.value.preferences = {
+        ...userSession.value.preferences,
+        ...preferences
+      };
+    }
   };
 
-  // Function to simulate logout
+  // Function to handle logout
   const logout = () => {
-    userSession.value.isAuthenticated = false;
+    // Keep the reference but reset properties
+    if (userSession.value) {
+      userSession.value.isAuthenticated = false;
+      // Optionally clear sensitive data
+      userSession.value.email = '';
+      userSession.value.id = '';
+    }
   };
 
-  // Function to simulate login
+  // Function to handle login with Supabase user data
   const login = (userData: Partial<UserSession>) => {
+    // Merge the existing session with new data
     userSession.value = {
       ...userSession.value,
       ...userData,
-      isAuthenticated: true
+      isAuthenticated: true,
+      // Update last login timestamp
+      metadata: {
+        ...userSession.value?.metadata,
+        ...userData.metadata,
+        lastLogin: new Date().toISOString()
+      }
     };
   };
 
@@ -50,6 +63,6 @@ export const useUserStore = defineStore('user', () => {
     userSession,
     updatePreferences,
     logout,
-    login
+    login,
   };
 });

@@ -3,7 +3,7 @@ import type {
   ProviderModels, 
   DefaultModels 
 } from '../types/servicesTypes';
-import { API_BASE_URL } from './apiUtils';
+import { API_BASE_URL, getAuthHeaders } from './apiUtils';
 
 
 
@@ -14,7 +14,9 @@ import { API_BASE_URL } from './apiUtils';
 export async function getAvailableModels(): Promise<AvailableModels> {
   try {
     const url = `${API_BASE_URL}/models`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
@@ -35,7 +37,9 @@ export async function getAvailableModels(): Promise<AvailableModels> {
 export async function getProviderModels(provider: string): Promise<ProviderModels> {
   try {
     const url = `${API_BASE_URL}/models/${provider}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch models for provider ${provider}: ${response.status} ${response.statusText}`);
@@ -55,7 +59,9 @@ export async function getProviderModels(provider: string): Promise<ProviderModel
 export async function getDefaultModels(): Promise<DefaultModels> {
   try {
     const url = `${API_BASE_URL}/models-default`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch default models: ${response.status} ${response.statusText}`);
