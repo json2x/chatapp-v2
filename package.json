@@ -1,8 +1,8 @@
 {
-  "name": "windsurf-quasar-chat-app",
+  "name": "mrroboto-chat",
   "version": "0.0.7",
   "description": "A windsurf-quasar chat app via vibe coding",
-  "productName": "Windsur-Quasar Chat App",
+  "productName": "Mr Roboto Chat",
   "author": "diodezenner <diodezenner@gmail.com>",
   "type": "module",
   "private": true,
