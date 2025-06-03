@@ -1,9 +1,13 @@
 <template>
-  <section class="hero-section" id="hero">
+  <section class="hero-section" id="hero" aria-labelledby="hero-title">
     <div class="hero-content">
-      <h1 class="title">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></h1>
+      <h2 id="hero-title" class="title">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></h2>
       <p class="subtitle">{{ appDescription }}</p>
-      <div class="hero-animation">
+      <div class="cta-buttons" aria-label="Get started">
+        <a href="#features" class="cta-button primary" @click.prevent="scrollToSection('features')" aria-label="Learn about features">Explore Features</a>
+        <a href="#pricing" class="cta-button secondary" @click.prevent="scrollToSection('pricing')" aria-label="View pricing plans">View Pricing</a>
+      </div>
+      <div class="hero-animation" aria-hidden="true">
         <div class="chat-bubble bubble-1">Hey {{ appTitle }}!</div>
         <div class="chat-bubble bubble-2">How can I help today?</div>
         <div class="chat-bubble bubble-3">Tell me about...</div>
@@ -20,6 +24,13 @@ const appStore = useAppStore();
 const appTitle = computed(() => appStore.title);
 const appDescription = computed(() => appStore.description);
 const titleSplitIndex = computed(() => appStore.titleSplitIndex);
+
+const scrollToSection = (sectionId: string) => {
+  const element = document.getElementById(sectionId);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' });
+  }
+};
 </script>
 
 <style scoped>
@@ -71,9 +82,12 @@ const titleSplitIndex = computed(() => appStore.titleSplitIndex);
 
 .subtitle {
   font-size: 1.5rem;
-  color: rgba(0, 0, 0, 0.6);
+  color: rgba(0, 0, 0, 0.8); /* Improved contrast for accessibility */
   margin-bottom: 2rem;
   animation: fadeIn 1.5s ease-out;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .hero-animation {
@@ -134,6 +148,44 @@ const titleSplitIndex = computed(() => appStore.titleSplitIndex);
 
 
 
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  animation: fadeIn 2s ease-out;
+}
+
+.cta-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.cta-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.cta-button:focus {
+  outline: 2px solid #1976D2;
+  outline-offset: 2px;
+}
+
+.cta-button.primary {
+  background: linear-gradient(135deg, #1976D2, #42a5f5);
+  color: white;
+}
+
+.cta-button.secondary {
+  background: white;
+  color: #1976D2;
+  border: 2px solid #1976D2;
+}
+
 @media (max-width: 768px) {
   .title {
     font-size: 3rem;
@@ -141,6 +193,17 @@ const titleSplitIndex = computed(() => appStore.titleSplitIndex);
   
   .subtitle {
     font-size: 1.2rem;
+  }
+  
+  .cta-buttons {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .cta-button {
+    width: 80%;
+    text-align: center;
   }
 }
 </style>

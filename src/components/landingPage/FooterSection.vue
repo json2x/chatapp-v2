@@ -1,15 +1,15 @@
 <template>
-  <footer class="footer-section">
+  <footer class="footer-section" role="contentinfo">
     <div class="footer-container">
       <div class="footer-columns">
         <div class="footer-column">
-          <div class="footer-logo">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></div>
+          <div class="footer-logo" aria-label="Company logo">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></div>
           <p class="footer-tagline">{{ appDescription }}</p>
-          <div class="social-links">
-            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+          <div class="social-links" aria-label="Social media links">
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
           </div>
         </div>
         <div class="footer-links-container">
@@ -17,7 +17,7 @@
             <h3 class="column-title">{{ column.title }}</h3>
             <ul class="footer-links">
               <li v-for="(link, linkIndex) in column.links" :key="linkIndex">
-                <a href="#" class="footer-link">{{ link }}</a>
+                <a :href="getFooterLinkUrl(column.title, link)" class="footer-link" :aria-label="link">{{ link }}</a>
               </li>
             </ul>
           </div>
@@ -26,11 +26,11 @@
       
       <div class="footer-bottom">
         <p>&copy; {{ copyrightYear }} {{ appTitle }}. All rights reserved.</p>
-        <!-- <div class="social-links">
-          <a href="#" class="social-link" v-for="(icon, index) in socialIcons" :key="index">
-            {{ icon }}
-          </a>
-        </div> -->
+        <nav class="legal-links" aria-label="Legal information">
+          <a href="/privacy" class="footer-link">Privacy Policy</a>
+          <a href="/terms" class="footer-link">Terms of Service</a>
+          <a href="/sitemap.xml" class="footer-link">Sitemap</a>
+        </nav>
       </div>
     </div>
   </footer>
@@ -45,6 +45,30 @@ const appTitle = computed(() => appStore.title);
 const appDescription = computed(() => appStore.description);
 const copyrightYear = computed(() => appStore.copyrightYear);
 const titleSplitIndex = computed(() => appStore.titleSplitIndex);
+
+// Function to get the appropriate URL for footer links
+const getFooterLinkUrl = (section: string, link: string): string => {
+  // Map footer links to appropriate URLs
+  const linkMap: Record<string, Record<string, string>> = {
+    'Product': {
+      'Features': '#features',
+      'Pricing': '#pricing',
+      'FAQ': '/faq'
+    },
+    'Company': {
+      'About Us': '#about',
+      'Contact': '/contact'
+    },
+    'Resources': {
+      'Documentation': '/docs',
+      'Support': '/support',
+      'API': '/api',
+      'Privacy Policy': '/privacy'
+    }
+  };
+  
+  return linkMap[section]?.[link] || '#';
+};
 
 const footerLinks = ref([
   {
@@ -176,6 +200,11 @@ const footerLinks = ref([
   align-items: center;
   padding-top: 2rem;
   border-top: 1px solid rgba(156, 163, 175, 0.2);
+}
+
+.legal-links {
+  display: flex;
+  gap: 1.5rem;
 }
 
 .copyright {

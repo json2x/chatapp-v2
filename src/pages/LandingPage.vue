@@ -1,16 +1,14 @@
 <template>
-  <div class="landing-page">
-    <header class="header">
+  <div class="landing-page" itemscope itemtype="http://schema.org/SoftwareApplication">
+    <header class="header" role="banner">
       <div class="logo">
-        {{ appTitle.slice(0, -titleSplitIndex)
-        }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span>
+        <h1 itemprop="name">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></h1>
+        <meta itemprop="applicationCategory" content="Chat Application" />
       </div>
       <nav class="nav-menu">
         <a href="#hero" class="nav-link" @click.prevent="scrollToSection('hero')">Home</a>
         <a href="#pricing" class="nav-link" @click.prevent="scrollToSection('pricing')">Pricing</a>
-        <a href="#features" class="nav-link" @click.prevent="scrollToSection('features')"
-          >Features</a
-        >
+        <a href="#features" class="nav-link" @click.prevent="scrollToSection('features')">Features</a>
         <a href="#about" class="nav-link" @click.prevent="scrollToSection('about')">About</a>
       </nav>
       <div class="auth-buttons">
@@ -25,55 +23,92 @@
       </button>
       <div class="mobile-menu" :class="{ open: mobileMenuOpen }">
         <div class="mobile-logo">
-          {{ appTitle.slice(0, -titleSplitIndex)
-          }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span>
+          {{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span>
         </div>
-        <a href="#hero" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('hero')"
-          >Home</a
-        >
-        <a href="#pricing" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('pricing')"
-          >Pricing</a
-        >
-        <a
-          href="#features"
-          class="mobile-nav-link"
-          @click.prevent="scrollToSectionMobile('features')"
-          >Features</a
-        >
-        <a href="#about" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('about')"
-          >About</a
-        >
+        <a href="#hero" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('hero')">Home</a>
+        <a href="#pricing" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('pricing')">Pricing</a>
+        <a href="#features" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('features')">Features</a>
+        <a href="#about" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('about')">About</a>
         <button class="mobile-login-btn" @click="login">Log In</button>
       </div>
     </header>
-
-    <main>
+    <main role="main">
       <HeroSection />
       <CtaSection />
       <PricingSection />
       <FeaturesSection />
+      <TestimonialsSection />
+      <FaqSection />
       <AboutSection />
     </main>
 
     <FooterSection />
+    
+    <!-- Structured Data is now injected via script setup -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../stores/app-store';
 import HeroSection from '../components/landingPage/HeroSection.vue';
 import CtaSection from '../components/landingPage/CtaSection.vue';
 import PricingSection from '../components/landingPage/PricingSection.vue';
 import FeaturesSection from '../components/landingPage/FeaturesSection.vue';
+import TestimonialsSection from '../components/landingPage/TestimonialsSection.vue';
+import FaqSection from '../components/landingPage/FaqSection.vue';
 import AboutSection from '../components/landingPage/AboutSection.vue';
 import FooterSection from '../components/landingPage/FooterSection.vue';
+// Breadcrumb removed as requested
 import { login } from '../services/auth';
 
+// We're not using router in this component, so no need to initialize it
 const appStore = useAppStore();
 const appTitle = computed(() => appStore.title);
 const titleSplitIndex = computed(() => appStore.titleSplitIndex);
 const mobileMenuOpen = ref(false);
+
+// Set page-specific meta tags for SEO
+onMounted(() => {
+  document.title = `${appTitle.value} - Modern Chat Application`;
+  
+  // Update meta description dynamically
+  const metaDescription = document.querySelector('meta[name="description"]');
+  if (metaDescription) {
+    metaDescription.setAttribute('content', 'Experience real-time messaging with our modern chat application. Secure, fast, and feature-rich platform for all your communication needs.');
+  }
+  
+  // Inject JSON-LD structured data
+  injectStructuredData();
+});
+
+// Function to inject structured data
+const injectStructuredData = () => {
+  // Remove any existing JSON-LD script
+  const existingScript = document.querySelector('script[type="application/ld+json"]');
+  if (existingScript) {
+    existingScript.remove();
+  }
+  
+  // Create and inject new JSON-LD script
+  const script = document.createElement('script');
+  script.setAttribute('type', 'application/ld+json');
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    'name': appTitle.value,
+    'description': 'A modern chat application with real-time messaging capabilities',
+    'applicationCategory': 'Chat Application',
+    'offers': {
+      '@type': 'Offer',
+      'price': '0',
+      'priceCurrency': 'USD'
+    },
+    'operatingSystem': 'Web'
+  });
+  
+  document.head.appendChild(script);
+};
 
 const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value;
@@ -120,13 +155,14 @@ const scrollToSectionMobile = (sectionId: string) => {
     sans-serif;
   color: #1f2937;
   line-height: 1.5;
+
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   position: fixed;
   top: 0;
   left: 0;
@@ -135,12 +171,20 @@ const scrollToSectionMobile = (sectionId: string) => {
   backdrop-filter: blur(10px);
   z-index: 1000;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  height: 70px;
 }
 
 .logo {
   font-size: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.02em;
+}
+
+.logo h1 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  display: inline-block;
 }
 
 .highlight {
@@ -286,8 +330,8 @@ const scrollToSectionMobile = (sectionId: string) => {
 }
 
 .mobile-logo {
-  font-size: 1.8rem;
-  font-weight: 800;
+  font-size: 1.25rem;
+  font-weight: 700;
   letter-spacing: -0.05em;
   margin-bottom: 1.5rem;
 }
@@ -314,6 +358,8 @@ const scrollToSectionMobile = (sectionId: string) => {
 main {
   padding-top: 70px;
 }
+
+
 
 @media (max-width: 768px) {
   .nav-menu,
