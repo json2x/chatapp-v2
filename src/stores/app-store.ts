@@ -8,7 +8,7 @@ export const useAppStore = defineStore('app', () => {
   const description = ref<string>('AI conversations that understand you');
   const version = ref<string>('1.0.0');
   const copyrightYear = ref<number>(new Date().getFullYear());
-  const titleSplitIndex = ref<number>(-6); // Controls how many characters to highlight at the end of the title
+  const titleSplitIndex = ref<number>(-2); // Controls how many characters to highlight at the end of the title
 
   // Features list
   const features = ref<Feature[]>([
