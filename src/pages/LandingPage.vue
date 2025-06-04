@@ -2,13 +2,18 @@
   <div class="landing-page" itemscope itemtype="http://schema.org/SoftwareApplication">
     <header class="header" role="banner">
       <div class="logo">
-        <h1 itemprop="name">{{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span></h1>
+        <h1 itemprop="name">
+          {{ appTitle.slice(0, -titleSplitIndex)
+          }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span>
+        </h1>
         <meta itemprop="applicationCategory" content="Chat Application" />
       </div>
       <nav class="nav-menu">
         <a href="#hero" class="nav-link" @click.prevent="scrollToSection('hero')">Home</a>
         <a href="#pricing" class="nav-link" @click.prevent="scrollToSection('pricing')">Pricing</a>
-        <a href="#features" class="nav-link" @click.prevent="scrollToSection('features')">Features</a>
+        <a href="#features" class="nav-link" @click.prevent="scrollToSection('features')"
+          >Features</a
+        >
         <a href="#about" class="nav-link" @click.prevent="scrollToSection('about')">About</a>
       </nav>
       <div class="auth-buttons">
@@ -21,16 +26,33 @@
           <span></span>
         </div>
       </button>
-      <div class="mobile-menu" :class="{ open: mobileMenuOpen }">
-        <div class="mobile-logo">
-          {{ appTitle.slice(0, -titleSplitIndex) }}<span class="highlight">{{ appTitle.slice(-titleSplitIndex) }}</span>
+      <transition name="fade">
+        <div class="mobile-nav-container" v-if="mobileMenuOpen">
+          <div class="mobile-menu-overlay" @click="closeMobileMenu"></div>
+
+          <div class="mobile-menu">
+            <a href="#hero" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('hero')"
+              >Home</a
+            >
+            <a
+              href="#pricing"
+              class="mobile-nav-link"
+              @click.prevent="scrollToSectionMobile('pricing')"
+              >Pricing</a
+            >
+            <a
+              href="#features"
+              class="mobile-nav-link"
+              @click.prevent="scrollToSectionMobile('features')"
+              >Features</a
+            >
+            <a href="#about" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('about')"
+              >About</a
+            >
+            <button class="mobile-login-btn" @click="login">Log In</button>
+          </div>
         </div>
-        <a href="#hero" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('hero')">Home</a>
-        <a href="#pricing" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('pricing')">Pricing</a>
-        <a href="#features" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('features')">Features</a>
-        <a href="#about" class="mobile-nav-link" @click.prevent="scrollToSectionMobile('about')">About</a>
-        <button class="mobile-login-btn" @click="login">Log In</button>
-      </div>
+      </transition>
     </header>
     <main role="main">
       <HeroSection />
@@ -43,7 +65,7 @@
     </main>
 
     <FooterSection />
-    
+
     <!-- Structured Data is now injected via script setup -->
   </div>
 </template>
@@ -71,13 +93,16 @@ const mobileMenuOpen = ref(false);
 // Set page-specific meta tags for SEO
 onMounted(() => {
   document.title = `${appTitle.value} - Modern Chat Application`;
-  
+
   // Update meta description dynamically
   const metaDescription = document.querySelector('meta[name="description"]');
   if (metaDescription) {
-    metaDescription.setAttribute('content', 'Experience real-time messaging with our modern chat application. Secure, fast, and feature-rich platform for all your communication needs.');
+    metaDescription.setAttribute(
+      'content',
+      'Experience real-time messaging with our modern chat application. Secure, fast, and feature-rich platform for all your communication needs.',
+    );
   }
-  
+
   // Inject JSON-LD structured data
   injectStructuredData();
 });
@@ -89,24 +114,24 @@ const injectStructuredData = () => {
   if (existingScript) {
     existingScript.remove();
   }
-  
+
   // Create and inject new JSON-LD script
   const script = document.createElement('script');
   script.setAttribute('type', 'application/ld+json');
   script.textContent = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    'name': appTitle.value,
-    'description': 'A modern chat application with real-time messaging capabilities',
-    'applicationCategory': 'Chat Application',
-    'offers': {
+    name: appTitle.value,
+    description: 'A modern chat application with real-time messaging capabilities',
+    applicationCategory: 'Chat Application',
+    offers: {
       '@type': 'Offer',
-      'price': '0',
-      'priceCurrency': 'USD'
+      price: '0',
+      priceCurrency: 'USD',
     },
-    'operatingSystem': 'Web'
+    operatingSystem: 'Web',
   });
-  
+
   document.head.appendChild(script);
 };
 
@@ -155,7 +180,6 @@ const scrollToSectionMobile = (sectionId: string) => {
     sans-serif;
   color: #1f2937;
   line-height: 1.5;
-
 }
 
 .header {
@@ -306,27 +330,58 @@ const scrollToSectionMobile = (sectionId: string) => {
   transform: rotate(-135deg);
 }
 
-.mobile-menu {
-  display: none;
+/* Mobile navigation container */
+.mobile-nav-container {
   position: fixed;
   top: 70px;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: white;
+  width: 100%;
+  height: calc(100vh - 70px);
+  z-index: 998;
+}
+
+/* Overlay for the mobile menu */
+.mobile-menu-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+  z-index: 998; /* Just below the mobile menu */
+}
+
+/* Mobile menu styles */
+.mobile-menu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-top: 1px solid #e5e7eb;
   padding: 2rem;
+  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  transform: translateY(-100%);
-  opacity: 0;
-  transition: all 0.3s ease;
   z-index: 999;
 }
 
-.mobile-menu.open {
-  transform: translateY(0);
-  opacity: 1;
+/* Fade transition for the mobile menu */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .mobile-logo {
@@ -359,8 +414,6 @@ main {
   padding-top: 70px;
 }
 
-
-
 @media (max-width: 768px) {
   .nav-menu,
   .auth-buttons {
@@ -373,6 +426,12 @@ main {
 
   .mobile-menu {
     display: flex;
+    background-color: #ffffff;
+  }
+
+  /* Force solid background */
+  .mobile-menu.open {
+    background-color: #ffffff;
   }
 }
 </style>
