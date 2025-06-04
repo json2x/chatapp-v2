@@ -1,41 +1,50 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <title><%= productName %></title>
 
-    <meta charset="utf-8">
-    <meta name="description" content="<%= productDescription %>">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="msapplication-tap-highlight" content="no">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
-    
-    <!-- SEO Meta Tags -->
-    <meta name="author" content="diodezenner">
-    <meta name="keywords" content="chat app, messaging, real-time chat, secure messaging, Mr Roboto Chat">
-    <meta name="robots" content="index, follow">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="<%= ctx.mode.pwa ? process.env.APP_URL : '' %>">
-    <meta property="og:title" content="<%= productName %>">
-    <meta property="og:description" content="<%= productDescription %>">
-    <meta property="og:image" content="<%= ctx.mode.pwa ? process.env.APP_URL + '/icons/icon-512x512.png' : '' %>">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="<%= ctx.mode.pwa ? process.env.APP_URL : '' %>">
-    <meta property="twitter:title" content="<%= productName %>">
-    <meta property="twitter:description" content="<%= productDescription %>">
-    <meta property="twitter:image" content="<%= ctx.mode.pwa ? process.env.APP_URL + '/icons/icon-512x512.png' : '' %>">
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="<%= ctx.mode.pwa ? process.env.APP_URL : '' %>">
+    <meta charset="utf-8" />
+    <meta name="description" content="<%= productDescription %>" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
 
-    <link rel="icon" type="image/png" sizes="128x128" href="icons/favicon-128x128.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
-    <link rel="icon" type="image/ico" href="favicon.ico">
+    <!-- SEO Meta Tags -->
+    <meta name="author" content="diodezenner" />
+    <meta
+      name="keywords"
+      content="chat app, messaging, real-time chat, secure messaging, Mr Roboto Chat"
+    />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<%= ctx.mode.pwa ? process.env.APP_URL : '' %>" />
+    <meta property="og:title" content="<%= productName %>" />
+    <meta property="og:description" content="<%= productDescription %>" />
+    <meta
+      property="og:image"
+      content="<%= ctx.mode.pwa ? process.env.APP_URL + '/icons/favicon-128x128.ico' : '' %>"
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="<%= ctx.mode.pwa ? process.env.APP_URL : '' %>" />
+    <meta property="twitter:title" content="<%= productName %>" />
+    <meta property="twitter:description" content="<%= productDescription %>" />
+    <meta
+      property="twitter:image"
+      content="<%= ctx.mode.pwa ? process.env.APP_URL + '/icons/favicon-128x128.ico' : '' %>"
+    />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<%= ctx.mode.pwa ? process.env.APP_URL : '' %>" />
+
+    <link rel="icon" type="image/ico" sizes="128x128" href="icons/favicon-128x128.ico" />
+    <link rel="icon" type="image/ico" sizes="96x96" href="icons/favicon-96x96.ico" />
+    <link rel="icon" type="image/ico" sizes="32x32" href="icons/favicon-32x32.ico" />
+    <link rel="icon" type="image/ico" sizes="16x16" href="icons/favicon-16x16.ico" />
+    <link rel="icon" type="image/ico" href="favicon.ico" />
   </head>
   <body>
     <!-- quasar:entry-point -->
