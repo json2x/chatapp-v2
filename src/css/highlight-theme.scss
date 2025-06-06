@@ -1,0 +1,235 @@
+/**
+ * Highlight.js theme switching styles
+ * Uses github theme for light mode and github-dark-dimmed for dark mode
+ */
+
+/* Light mode uses the default github theme */
+.body--light .hljs.code-block {
+  /* Ensure proper background color in light mode */
+  background-color: #f6f8fa !important;
+}
+
+/* Apply dark theme styles when in dark mode */
+.body--dark .hljs.code-block {
+  /* Override with github-dark-dimmed theme */
+  background-color: #22272e !important;
+
+  /* Force dark theme classes to take precedence */
+  &:not(:root) {
+    .hljs-doctag,
+    .hljs-keyword,
+    .hljs-meta .hljs-keyword,
+    .hljs-template-tag,
+    .hljs-template-variable,
+    .hljs-type,
+    .hljs-variable.language_ {
+      /* github-dark-dimmed keyword color */
+      color: #f47067 !important;
+    }
+
+    .hljs-title,
+    .hljs-title.class_,
+    .hljs-title.class_.inherited__,
+    .hljs-title.function_ {
+      /* github-dark-dimmed function color */
+      color: #dcbdfb !important;
+    }
+
+    .hljs-attr,
+    .hljs-attribute,
+    .hljs-literal,
+    .hljs-meta,
+    .hljs-number,
+    .hljs-operator,
+    .hljs-variable,
+    .hljs-selector-attr,
+    .hljs-selector-class,
+    .hljs-selector-id {
+      /* github-dark-dimmed attribute color */
+      color: #6cb6ff !important;
+    }
+
+    .hljs-regexp,
+    .hljs-string,
+    .hljs-meta .hljs-string {
+      /* github-dark-dimmed string color */
+      color: #96d0ff !important;
+    }
+
+    .hljs-built_in,
+    .hljs-symbol {
+      /* github-dark-dimmed built-in color */
+      color: #f69d50 !important;
+    }
+
+    .hljs-comment,
+    .hljs-code,
+    .hljs-formula {
+      /* github-dark-dimmed comment color */
+      color: #768390 !important;
+    }
+
+    .hljs-name,
+    .hljs-quote,
+    .hljs-selector-tag,
+    .hljs-selector-pseudo {
+      /* github-dark-dimmed tag color */
+      color: #8ddb8c !important;
+    }
+
+    .hljs-subst {
+      /* github-dark-dimmed subst color */
+      color: #adbac7 !important;
+    }
+
+    .hljs-section {
+      /* github-dark-dimmed section color */
+      color: #316dca !important;
+      font-weight: bold;
+    }
+
+    .hljs-bullet {
+      /* github-dark-dimmed bullet color */
+      color: #eac55f !important;
+    }
+
+    .hljs-emphasis {
+      /* github-dark-dimmed emphasis */
+      color: #adbac7 !important;
+      font-style: italic;
+    }
+
+    .hljs-strong {
+      /* github-dark-dimmed strong */
+      color: #adbac7 !important;
+      font-weight: bold;
+    }
+
+    .hljs-addition {
+      /* github-dark-dimmed addition */
+      color: #b4f1b4 !important;
+      background-color: #1b4721 !important;
+    }
+
+    .hljs-deletion {
+      /* github-dark-dimmed deletion */
+      color: #ffd8d3 !important;
+      background-color: #78191b !important;
+    }
+  }
+}
+
+/* Wrapper for code blocks with header */
+.code-block-wrapper {
+  margin: 1rem 0.5rem;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  /* Theme-specific styling */
+  .body--light & {
+    border: 1px solid #d0d7de;
+  }
+
+  .body--dark & {
+    border: 1px solid #444c56;
+  }
+}
+
+/* Additional styling for code blocks */
+.code-block {
+  margin: 0; /* Remove margin as it's now handled by the wrapper */
+  position: relative;
+
+  /* Transition for smooth theme switching */
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+
+  /* Remove border radius from pre as it's now handled by the wrapper */
+  &.hljs {
+    border-radius: 0;
+    border-top: none;
+    margin: 0;
+
+    /* Ensure proper padding */
+    code {
+      padding: 1rem;
+      display: block;
+    }
+  }
+}
+
+/* Enhance code block header styling */
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+
+  /* Theme-specific styling */
+  .body--light & {
+    background-color: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+  }
+
+  .body--dark & {
+    background-color: #2d333b;
+    border-bottom: 1px solid #444c56;
+  }
+}
+
+/* Language badge styling */
+.code-language {
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+
+  /* Theme-specific styling */
+  .body--light & {
+    color: #57606a;
+  }
+
+  .body--dark & {
+    color: #adbac7;
+  }
+}
+
+/* Copy button styling */
+.code-copy-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  /* Icon styling */
+  i {
+    font-size: 16px;
+  }
+
+  /* Theme-specific styling */
+  .body--light & {
+    background-color: transparent;
+    color: #57606a;
+
+    &:hover {
+      background-color: #e0e0e0;
+    }
+  }
+
+  .body--dark & {
+    background-color: transparent;
+    color: #adbac7;
+
+    &:hover {
+      background-color: #444c56;
+    }
+  }
+}

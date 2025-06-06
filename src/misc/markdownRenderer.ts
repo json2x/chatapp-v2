@@ -2,6 +2,10 @@ import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import katex from 'katex';
 
+// Import highlight.js styles for light and dark modes
+import 'highlight.js/styles/github.css';
+import 'highlight.js/styles/github-dark-dimmed.css';
+
 /**
  * Type definition for the render options
  */
@@ -56,7 +60,7 @@ export function renderMarkdown(content: string, options?: RenderMarkdownOptions)
         try {
           const highlighted = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
           return (
-            '<pre class="hljs"><code class="language-' + lang + '">' +
+            '<pre class="hljs code-block"><code class="language-' + lang + '">' +
             highlighted +
             '</code></pre>'
           );
@@ -67,7 +71,7 @@ export function renderMarkdown(content: string, options?: RenderMarkdownOptions)
 
       // Use default escaping if no language or highlighting fails
       return (
-        '<pre class="hljs"><code>' +
+        '<pre class="hljs code-block"><code>' +
         md.utils.escapeHtml(str) +
         '</code></pre>'
       );

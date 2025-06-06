@@ -376,7 +376,6 @@ watch(
   }
 
   :deep(pre) {
-    margin: 1rem 0;
     padding: 1rem;
     border-radius: 4px;
     background-color: var(--q-code-block-bg);

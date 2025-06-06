@@ -154,28 +154,36 @@ export function addCopyButtons(codeBlocks: CodeBlock[], onCopy?: (success: boole
     languageBadge.textContent = block.language || 'plaintext';
     buttonContainer.appendChild(languageBadge);
 
-    // Create copy button using Quasar QBtn
-    const copyButton = document.createElement('q-btn');
-    copyButton.className = 'code-copy-button q-btn q-btn-item non-selectable no-outline q-btn--flat q-btn--round q-btn--actionable q-hoverable';
+    // Create copy button using standard HTML button
+    const copyButton = document.createElement('button');
+    copyButton.className = 'code-copy-button';
     copyButton.setAttribute('aria-label', 'Copy code');
-    copyButton.setAttribute('flat', '');
-    copyButton.setAttribute('round', '');
-    copyButton.setAttribute('dense', '');
-    copyButton.setAttribute('size', 'sm');
-    copyButton.setAttribute('icon', 'mdi-content-copy');
+    copyButton.setAttribute('type', 'button');
     copyButton.title = 'Copy code';
+    
+    // Add icon to the button
+    const copyIcon = document.createElement('i');
+    copyIcon.className = 'mdi mdi-content-copy';
+    copyButton.appendChild(copyIcon);
 
     // Add click event to copy button
     copyButton.addEventListener('click', () => {
       // Use void to explicitly mark the promise as ignored
       void copyToClipboard(block.code).then((success) => {
         // Visual feedback
-        copyButton.setAttribute('icon', success ? 'check' : 'error');
-
-        // Reset after 2 seconds
-        setTimeout(() => {
-          copyButton.setAttribute('icon', 'mdi-content-copy');
-        }, 2000);
+        const icon = copyButton.querySelector('i');
+        if (icon) {
+          // Store original class to restore later
+          const originalClass = icon.className;
+          
+          // Update icon based on success/failure
+          icon.className = success ? 'mdi mdi-check' : 'mdi mdi-alert';
+          
+          // Reset after 2 seconds
+          setTimeout(() => {
+            icon.className = originalClass;
+          }, 2000);
+        }
 
         // Execute callback if provided
         if (onCopy) onCopy(success);
@@ -184,8 +192,21 @@ export function addCopyButtons(codeBlocks: CodeBlock[], onCopy?: (success: boole
 
     buttonContainer.appendChild(copyButton);
 
-    // Insert the button container before the code block
-    block.element.insertBefore(buttonContainer, block.element.firstChild);
+    // Create a wrapper div to contain both the header and code block
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-block-wrapper';
+    
+    // Get the parent of the code block
+    const parent = block.element.parentNode;
+    
+    if (parent) {
+      // Replace the code block with our wrapper
+      parent.replaceChild(wrapper, block.element);
+      
+      // Add the header and code block to the wrapper
+      wrapper.appendChild(buttonContainer);
+      wrapper.appendChild(block.element);
+    }
   });
 }
 
