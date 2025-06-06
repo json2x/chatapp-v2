@@ -250,11 +250,15 @@ export const useChatStore = defineStore('chat', () => {
             if (gpt4oMiniIndex >= 0 && modelOptions[gpt4oMiniIndex]) {
               // gpt-4o-mini is available, set it as default
               const defaultModel = modelOptions[gpt4oMiniIndex];
-              updateSelectedModel(defaultModel);
+              if (defaultModel) { // Extra check to ensure it's not undefined
+                updateSelectedModel(defaultModel);
+              }
             } else if (modelOptions.length > 0 && modelOptions[0]) {
               // Otherwise use the first model in the list
               const firstModel = modelOptions[0];
-              updateSelectedModel(firstModel);
+              if (firstModel) { // Extra check to ensure it's not undefined
+                updateSelectedModel(firstModel);
+              }
             }
           }
         }

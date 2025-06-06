@@ -61,7 +61,7 @@
               class="q-mb-md"
             />
           </template>
-          
+
           <!-- Assistant typing indicator -->
           <div v-if="isProcessing" class="typing-indicator q-mb-md">
             <q-chat-message
@@ -113,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watchEffect } from 'vue';
+import { ref, computed, nextTick, onMounted, watchEffect, useCssVars } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
 import { useQuasar } from 'quasar';
@@ -124,29 +124,36 @@ import { getConversationById } from 'src/services/conversationService';
 import type { ChatRequest, ChatStreamResponse } from 'src/types/servicesTypes';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
-// Markdown rendering is now handled by the ChatMessage component
+import { storeToRefs } from 'pinia';
 
 const $q = useQuasar();
 const chatStore = useChatStore();
 const userStore = useUserStore();
 
-// Reactive references
+// Extract reactive state from stores using storeToRefs
+const {
+  selectedVersion,
+  isLoadingMessages,
+  messageLoadError,
+  conversations,
+  chatSuggestions,
+  activeChatId,
+} = storeToRefs(chatStore);
+
+// Keep activeChat as computed since it's a method in the store
+const activeChat = computed(() => chatStore.activeChat());
+const messages = computed(() => activeChat.value?.messages || []);
+
+// Get user information from userStore
+const { userSession } = storeToRefs(userStore);
+const userName = computed(() => userSession.value.fullName || 'User');
+
+// Local reactive references
 const messageInput = ref('');
 const isProcessing = ref(false);
 const messagesContainer = ref<HTMLElement | null>(null);
 const inputField = ref<{ $el?: HTMLElement } | null>(null);
 const responseTimer = ref<number | null>(null);
-
-// Computed properties
-const activeChat = computed(() => chatStore.activeChat());
-const messages = computed(() => activeChat.value?.messages || []);
-const userName = computed(() => userStore.userSession.fullName || 'User');
-const selectedModel = computed(() => chatStore.selectedVersion);
-const isLoadingMessages = computed(() => chatStore.isLoadingMessages);
-const messageLoadError = computed(() => chatStore.messageLoadError);
-const conversations = computed(() => chatStore.conversations);
-
-const chatSuggestions = computed(() => chatStore.chatSuggestions);
 
 function applySuggestion(suggestion: { title: string; description: string }) {
   messageInput.value = `${suggestion.title} ${suggestion.description}`;
@@ -165,8 +172,8 @@ async function sendMessage() {
   const userMessage = messageInput.value.trim();
   messageInput.value = ''; // Clear input immediately
 
-  // Get the selected model from the store
-  const model = selectedModel.value;
+  // Get the selected model from the store using the reactive ref
+  const model = selectedVersion.value;
 
   // Create a unique ID for the user message
   const userMessageId = Date.now().toString();
@@ -181,7 +188,7 @@ async function sendMessage() {
     sender: 'user',
     timestamp: new Date(),
   });
-  
+
   // Set the subtitle to a three-dot spinner
   if (activeChat.value) {
     activeChat.value.subtitle = '...'; // Will be displayed as three dots
@@ -252,7 +259,7 @@ async function sendMessage() {
           assistantMessage = activeChat.value?.messages[activeChat.value?.messages.length - 1];
         } else {
           assistantMessage.content = fullContent;
-          
+
           // Manually update the subtitle in the active chat
           if (activeChat.value) {
             activeChat.value.subtitle = fullContent;
@@ -278,6 +285,7 @@ async function sendMessage() {
 
               // Update the conversation ID in the store by calling setActiveChat
               // This will properly update the activeChatId ref
+              activeChatId.value = conversationId;
               void chatStore.setActiveChat(conversationId);
             }
           }
@@ -427,9 +435,26 @@ function handleMessageCopied(success: boolean): void {
     message: success ? 'Message copied to clipboard' : 'Failed to copy message',
     color: success ? 'positive' : 'negative',
     position: 'top',
-    timeout: 2000
+    timeout: 2000,
   });
 }
+
+// Define CSS variables for dark mode styling
+useCssVars(() => {
+  const isDark = $q.dark.isActive;
+  return {
+    'scrollbar-thumb-color-light': 'rgba(0, 0, 0, 0.2)',
+    'scrollbar-thumb-color-dark': 'rgba(255, 255, 255, 0.5)',
+    'chat-message-name-color-light': 'rgb(0, 0, 0)',
+    'chat-message-name-color-dark': 'rgba(255, 255, 255, 0.9)',
+    'message-received-bg-light': 'white',
+    'message-received-bg-dark': 'var(--q-dark-page)',
+    // Dynamic values based on dark mode
+    'scrollbar-thumb-color': isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.2)',
+    'chat-message-name-color': isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgb(0, 0, 0)',
+    'message-received-bg': isDark ? 'var(--q-dark-page)' : 'white',
+  };
+});
 
 onMounted(() => {
   if (activeChat.value) {
@@ -520,14 +545,15 @@ onMounted(() => {
 
   /* Only show scrollbar when actively scrolling */
   &.scrolling::-webkit-scrollbar-thumb {
-    background-color: v-bind('$q.dark.isActive ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.2)"');
+    background-color: var(--scrollbar-thumb-color);
   }
 
-  /* Firefox - allocate space but make it transparent when not scrolling */
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+  & {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
   &.scrolling {
-    scrollbar-color: v-bind('$q.dark.isActive ? "rgba(255, 255, 255, 0.5) transparent" : "rgba(0, 0, 0, 0.2) transparent"');
+    scrollbar-color: var(--scrollbar-thumb-color) transparent;
   }
 
   /* Add padding to ensure content doesn't shift */
@@ -757,12 +783,12 @@ onMounted(() => {
 }
 
 .custom-chat-message :deep(.q-message__name) {
-  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)': 'rgb(0, 0, 0)') !important;
+  color: var(--chat-message-name-color) !important;
   opacity: 0.5 !important;
 }
 
 .custom-chat-message :deep(.q-message-name) {
-  color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.9)': 'rgb(0, 0, 0)') !important;
+  color: var(--chat-message-name-color) !important;
   opacity: 0.5 !important;
 }
 
@@ -780,7 +806,7 @@ onMounted(() => {
 }
 
 :deep(.q-message-text--received) {
-  background-color: v-bind($q.dark.isActive ? 'var(--q-dark-page)': 'white') !important;
+  background-color: var(--message-received-bg) !important;
 }
 
 /* Markdown content styling */
