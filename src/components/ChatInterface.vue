@@ -36,43 +36,32 @@
           </div>
         </div>
 
-        <!-- <div v-else-if="messages.length > 0 && !isLoadingMessages && !messageLoadError" class="text-center">
-          {{ messages}}
-        </div> -->
-
-        <!-- Chat Messages -->
-        <div v-else class="chat-message-list q-pa-md">
-          <q-chat-message
-            v-for="(message, index) in messages"
-            :key="index"
-            :name="message.sender === 'user' ? userName : 'Assistant'"
-            :sent="message.sender === 'user'"
-            :bg-color="
-              message.sender === 'user'
-                ? $q.dark.isActive
-                  ? 'grey-8'
-                  : 'grey-3'
-                : $q.dark.isActive
-                  ? 'transparent'
-                  : 'white'
-            "
-            :text-color="
-              message.sender === 'user'
-                ? $q.dark.isActive
-                  ? 'white'
-                  : 'black'
-                : $q.dark.isActive
-                  ? 'white'
-                  : 'black'
-            "
-            class="q-mb-md custom-chat-message"
-          >
-            <div v-if="message.sender === 'user'">
-              {{ message.content }}
-            </div>
-            <div v-else v-html="renderMarkdown(message.content)" class="markdown-content"></div>
-          </q-chat-message>
-
+        <!-- Chat messages -->
+        <div class="chat-messages" ref="chatContainer">
+          <template v-for="(message, index) in messages" :key="index">
+            <!-- User messages still use q-chat-message for simplicity -->
+            <q-chat-message
+              v-if="message.sender === 'user'"
+              :name="'You'"
+              :text="[message.content]"
+              sent
+              :stamp="formatTimestamp(message.timestamp)"
+              class="user-message"
+            />
+            <!-- Assistant messages use our new ChatMessage component -->
+            <chat-message
+              v-else
+              :content="message.content"
+              :role="'assistant'"
+              :is-streaming="false"
+              :process-diagrams="true"
+              :max-height="400"
+              @rendered="scrollToBottom"
+              @copied="(success) => handleMessageCopied(success)"
+              class="q-mb-md"
+            />
+          </template>
+          
           <!-- Assistant typing indicator -->
           <div v-if="isProcessing" class="typing-indicator q-mb-md">
             <q-chat-message
@@ -129,12 +118,13 @@ import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
 import { useQuasar } from 'quasar';
 import ChatSuggestion from './ChatSuggestion.vue';
+import ChatMessage from './ChatMessage.vue';
 import { sendChatMessage, processStreamResponse } from 'src/services/chatService';
 import { getConversationById } from 'src/services/conversationService';
 import type { ChatRequest, ChatStreamResponse } from 'src/types/servicesTypes';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
-import { renderMarkdown } from 'src/misc/markdownRenderer';
+// Markdown rendering is now handled by the ChatMessage component
 
 const $q = useQuasar();
 const chatStore = useChatStore();
@@ -413,12 +403,33 @@ watchEffect(() => {
 
 // Additional utility functions
 
-// Function to retry loading messages if there was an error
-const retryLoadMessages = async () => {
+/**
+ * Function to retry loading messages if there was an error
+ */
+function retryLoadMessages() {
   if (activeChat.value) {
-    await chatStore.setActiveChat(activeChat.value.id);
+    void chatStore.setActiveChat(activeChat.value.id);
   }
-};
+}
+
+/**
+ * Format timestamp for display
+ */
+function formatTimestamp(timestamp: Date): string {
+  return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * Handle message copied event
+ */
+function handleMessageCopied(success: boolean): void {
+  $q.notify({
+    message: success ? 'Message copied to clipboard' : 'Failed to copy message',
+    color: success ? 'positive' : 'negative',
+    position: 'top',
+    timeout: 2000
+  });
+}
 
 onMounted(() => {
   if (activeChat.value) {
@@ -485,6 +496,10 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   position: relative;
+  max-width: 900px; /* Set a max-width for better readability */
+  margin: 0 auto; /* Center the messages container */
+  width: 100%; /* Take full width up to max-width */
+  padding: 0 16px; /* Add some padding on the sides */
 
   /* Always allocate space for scrollbar to prevent layout shifts */
   &::-webkit-scrollbar {
@@ -505,16 +520,14 @@ onMounted(() => {
 
   /* Only show scrollbar when actively scrolling */
   &.scrolling::-webkit-scrollbar-thumb {
-    background-color: v-bind($q.dark.isActive ? 'rgba(255, 255, 255, 0.5)': 'rgba(0, 0, 0, 0.2)');
+    background-color: v-bind('$q.dark.isActive ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.2)"');
   }
 
   /* Firefox - allocate space but make it transparent when not scrolling */
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   &.scrolling {
-    scrollbar-color: v-bind(
-      $q.dark.isActive ? 'rgba(255, 255, 255, 0.5) transparent': 'rgba(0, 0, 0, 0.2) transparent'
-    );
+    scrollbar-color: v-bind('$q.dark.isActive ? "rgba(255, 255, 255, 0.5) transparent" : "rgba(0, 0, 0, 0.2) transparent"');
   }
 
   /* Add padding to ensure content doesn't shift */
@@ -525,7 +538,7 @@ onMounted(() => {
   width: 100%;
   /* Ensure content doesn't get cut off by the scrollbar */
   padding-right: 2px;
-  max-width: 750px; /* Match the chat input container max-width */
+  max-width: 900px; /* Match the chat messages container max-width */
   margin: 0 auto;
 }
 
@@ -573,11 +586,13 @@ onMounted(() => {
   padding-bottom: 48px; /* Position input 48px from bottom */
   flex-shrink: 0; /* Prevent this from shrinking */
   transition: background-color 0.3s ease;
+  max-width: 900px; /* Match the chat messages container max-width */
+  margin: 0 auto; /* Center the input container */
+  width: 100%; /* Take full width up to max-width */
 }
 
 .chat-input-container {
-  max-width: 750px;
-  margin: 0 auto;
+  max-width: 100%;
   position: relative;
 }
 
