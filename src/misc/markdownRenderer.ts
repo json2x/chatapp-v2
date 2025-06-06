@@ -2,6 +2,10 @@ import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import katex from 'katex';
 
+// Import highlight.js CSS files directly
+import 'highlight.js/styles/github.css';
+import 'highlight.js/styles/github-dark-dimmed.css';
+
 /**
  * Type definition for the render options
  */

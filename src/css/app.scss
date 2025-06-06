@@ -3,11 +3,7 @@
 // Import Urbanist font from Google Fonts
 @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap');
 
-// Import highlight.js styles for light mode (default)  
-@import './github.css';
-
-// Import highlight.js styles for dark mode
-@import './github-dark-dimmed.css';
+// Highlight.js styles are now imported directly in markdownRenderer.ts
 
 // Import highlight.js theme switching styles
 @import './highlight-theme.scss';
