@@ -23,16 +23,49 @@ export function sanitizeHtml(html: string): string {
   // Configure DOMPurify to allow certain tags and attributes needed for markdown rendering
   const config = {
     ALLOWED_TAGS: [
-      'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a', 'img',
-      'strong', 'em', 'del', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'hr', 'br', 'sup', 'sub'
+      'p',
+      'div',
+      'span',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'pre',
+      'code',
+      'a',
+      'img',
+      'strong',
+      'em',
+      'del',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'hr',
+      'br',
+      'sup',
+      'sub',
     ],
     ALLOWED_ATTR: [
-      'href', 'src', 'alt', 'title', 'class', 'target', 'rel',
-      'style', 'data-language'
+      'href',
+      'src',
+      'alt',
+      'title',
+      'class',
+      'target',
+      'rel',
+      'style',
+      'data-language',
     ],
-    ALLOW_DATA_ATTR: true
+    ALLOW_DATA_ATTR: true,
   };
 
   return DOMPurify.sanitize(html, config);
@@ -45,10 +78,10 @@ export function sanitizeHtml(html: string): string {
  */
 export function renderChatMessage(content: string): string {
   if (!content) return '';
-  
+
   // Render markdown content
   const renderedContent = renderMarkdown(content);
-  
+
   // Sanitize the rendered HTML
   return sanitizeHtml(renderedContent);
 }
@@ -60,25 +93,27 @@ export function renderChatMessage(content: string): string {
  */
 export function extractCodeBlocks(element: HTMLElement): CodeBlock[] {
   if (!element) return [];
-  
+
   const codeBlocks: CodeBlock[] = [];
   const preElements = element.querySelectorAll('pre');
-  
+
   preElements.forEach((preElement) => {
     const codeElement = preElement.querySelector('code');
     if (codeElement) {
       // Extract language from class (e.g., "language-javascript")
-      const languageClass = Array.from(codeElement.classList).find(cls => cls.startsWith('language-'));
+      const languageClass = Array.from(codeElement.classList).find((cls) =>
+        cls.startsWith('language-'),
+      );
       const language = languageClass ? languageClass.replace('language-', '') : 'plaintext';
-      
+
       codeBlocks.push({
         language,
         code: codeElement.textContent || '',
-        element: preElement
+        element: preElement,
       });
     }
   });
-  
+
   return codeBlocks;
 }
 
@@ -105,48 +140,50 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 export function addCopyButtons(codeBlocks: CodeBlock[], onCopy?: (success: boolean) => void): void {
   codeBlocks.forEach((block) => {
     if (!block.element) return;
-    
+
     // Check if copy button already exists
     if (block.element.querySelector('.code-copy-button')) return;
-    
+
     // Create copy button container
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'code-header';
-    
+
     // Add language badge
     const languageBadge = document.createElement('span');
     languageBadge.className = 'code-language';
     languageBadge.textContent = block.language || 'plaintext';
     buttonContainer.appendChild(languageBadge);
-    
-    // Create copy button
-    const copyButton = document.createElement('button');
-    copyButton.className = 'code-copy-button';
-    copyButton.innerHTML = '<i class="material-icons">content_copy</i>';
+
+    // Create copy button using Quasar QBtn
+    const copyButton = document.createElement('q-btn');
+    copyButton.className = 'code-copy-button q-btn q-btn-item non-selectable no-outline q-btn--flat q-btn--round q-btn--actionable q-hoverable';
     copyButton.setAttribute('aria-label', 'Copy code');
+    copyButton.setAttribute('flat', '');
+    copyButton.setAttribute('round', '');
+    copyButton.setAttribute('dense', '');
+    copyButton.setAttribute('size', 'sm');
+    copyButton.setAttribute('icon', 'mdi-content-copy');
     copyButton.title = 'Copy code';
-    
+
     // Add click event to copy button
     copyButton.addEventListener('click', () => {
       // Use void to explicitly mark the promise as ignored
       void copyToClipboard(block.code).then((success) => {
         // Visual feedback
-        copyButton.innerHTML = success ? 
-          '<i class="material-icons">check</i>' : 
-          '<i class="material-icons">error</i>';
-        
+        copyButton.setAttribute('icon', success ? 'check' : 'error');
+
         // Reset after 2 seconds
         setTimeout(() => {
-          copyButton.innerHTML = '<i class="material-icons">content_copy</i>';
+          copyButton.setAttribute('icon', 'mdi-content-copy');
         }, 2000);
-        
+
         // Execute callback if provided
         if (onCopy) onCopy(success);
       });
     });
-    
+
     buttonContainer.appendChild(copyButton);
-    
+
     // Insert the button container before the code block
     block.element.insertBefore(buttonContainer, block.element.firstChild);
   });
@@ -160,28 +197,28 @@ export function addCopyButtons(codeBlocks: CodeBlock[], onCopy?: (success: boole
  */
 export function makeCollapsible(element: HTMLElement, maxHeight = 300, threshold = 400): void {
   if (!element || element.scrollHeight <= threshold) return;
-  
+
   // Create wrapper with max-height
   element.classList.add('collapsible-content');
   element.style.maxHeight = `${maxHeight}px`;
   element.style.overflow = 'hidden';
   element.style.position = 'relative';
-  
+
   // Add gradient overlay
   const overlay = document.createElement('div');
   overlay.className = 'collapse-overlay';
   element.appendChild(overlay);
-  
+
   // Create expand button
   const expandButton = document.createElement('button');
   expandButton.className = 'expand-button';
   expandButton.textContent = 'Show more';
   expandButton.setAttribute('aria-expanded', 'false');
-  
+
   // Add click event to expand button
   expandButton.addEventListener('click', () => {
     const isExpanded = element.classList.toggle('expanded');
-    
+
     if (isExpanded) {
       element.style.maxHeight = 'none';
       expandButton.textContent = 'Show less';
@@ -194,7 +231,7 @@ export function makeCollapsible(element: HTMLElement, maxHeight = 300, threshold
       overlay.style.display = 'block';
     }
   });
-  
+
   // Add button after the element
   element.parentNode?.insertBefore(expandButton, element.nextSibling);
 }

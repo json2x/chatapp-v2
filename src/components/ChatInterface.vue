@@ -38,40 +38,45 @@
 
         <!-- Chat messages -->
         <div class="chat-messages" ref="chatContainer">
-          <template v-for="(message, index) in messages" :key="index">
-            <!-- User messages still use q-chat-message for simplicity -->
-            <q-chat-message
-              v-if="message.sender === 'user'"
-              :name="'You'"
-              :text="[message.content]"
-              sent
-              :stamp="formatTimestamp(message.timestamp)"
-              class="user-message"
-            />
-            <!-- Assistant messages use our new ChatMessage component -->
-            <chat-message
-              v-else
-              :content="message.content"
-              :role="'assistant'"
-              :is-streaming="false"
-              :process-diagrams="true"
-              :max-height="400"
-              @rendered="scrollToBottom"
-              @copied="(success) => handleMessageCopied(success)"
-              class="q-mb-md"
-            />
-          </template>
+          <div class="messages-container">
+            <template v-for="(message, index) in messages" :key="index">
+              <!-- User messages use our custom UserMessage component -->
+              <user-message
+                v-if="message.sender === 'user'"
+                :content="message.content"
+                :role="'user'"
+                :message-id="message.id"
+                @copied="(success) => handleMessageCopied(success)"
+                @edit="handleEditMessage"
+                class="q-mb-md"
+              />
+              <!-- Assistant messages use our new AssistantMessage component -->
+              <assistant-message
+                v-else
+                :content="message.content"
+                :role="'assistant'"
+                :is-streaming="false"
+                :process-diagrams="true"
+                :max-height="400"
+                @rendered="scrollToBottom"
+                @copied="(success) => handleMessageCopied(success)"
+                @liked="handleMessageLiked"
+                @disliked="handleMessageDisliked"
+                class="q-mb-md"
+              />
+            </template>
 
-          <!-- Assistant typing indicator -->
-          <div v-if="isProcessing" class="typing-indicator q-mb-md">
-            <q-chat-message
-              name="Assistant"
-              bg-color="white"
-              text-color="black"
-              class="custom-chat-message"
-            >
-              <q-spinner-dots size="2rem" color="primary" />
-            </q-chat-message>
+            <!-- Assistant typing indicator -->
+            <div v-if="isProcessing" class="typing-indicator q-mb-md">
+              <q-chat-message
+                name="Assistant"
+                bg-color="white"
+                text-color="black"
+                class="custom-chat-message"
+              >
+                <q-spinner-dots size="2rem" color="primary" />
+              </q-chat-message>
+            </div>
           </div>
         </div>
       </div>
@@ -116,9 +121,10 @@
 import { ref, computed, nextTick, onMounted, watchEffect, useCssVars } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
+import AssistantMessage from './chat/AssistantMessage.vue';
+import UserMessage from './chat/UserMessage.vue';
 import { useQuasar } from 'quasar';
 import ChatSuggestion from './ChatSuggestion.vue';
-import ChatMessage from './ChatMessage.vue';
 import { sendChatMessage, processStreamResponse } from 'src/services/chatService';
 import { getConversationById } from 'src/services/conversationService';
 import type { ChatRequest, ChatStreamResponse } from 'src/types/servicesTypes';
@@ -136,13 +142,13 @@ const {
   isLoadingMessages,
   messageLoadError,
   conversations,
-  chatSuggestions,
-  activeChatId,
+  activeChatId, // Use activeChatId instead of selectedConversationId
 } = storeToRefs(chatStore);
 
-// Keep activeChat as computed since it's a method in the store
+// Local component state
 const activeChat = computed(() => chatStore.activeChat());
 const messages = computed(() => activeChat.value?.messages || []);
+const chatSuggestions = computed(() => chatStore.chatSuggestions || []);
 
 // Get user information from userStore
 const { userSession } = storeToRefs(userStore);
@@ -423,9 +429,12 @@ function retryLoadMessages() {
 /**
  * Format timestamp for display
  */
-function formatTimestamp(timestamp: Date): string {
-  return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+// function formatTimestamp(timestamp: Date): string {
+//   return new Date(timestamp).toLocaleTimeString([], {
+//     hour: '2-digit',
+//     minute: '2-digit',
+//   });
+// }
 
 /**
  * Handle message copied event
@@ -433,10 +442,41 @@ function formatTimestamp(timestamp: Date): string {
 function handleMessageCopied(success: boolean): void {
   $q.notify({
     message: success ? 'Message copied to clipboard' : 'Failed to copy message',
-    color: success ? 'positive' : 'negative',
     position: 'top',
-    timeout: 2000,
+    timeout: 500,
   });
+}
+
+// Handle message liked event
+function handleMessageLiked(): void {
+  console.log('Message liked');
+  // Add any additional logic for handling liked messages
+  // For example, you might want to track this in analytics or send feedback to your API
+}
+
+// Handle message disliked event
+function handleMessageDisliked(): void {
+  console.log('Message disliked');
+  // Add any additional logic for handling disliked messages
+  // For example, you might want to prompt the user for more detailed feedback
+}
+
+// Handle edit message request
+function handleEditMessage(messageId: string): void {
+  console.log('Edit message requested for:', messageId);
+  const message = messages.value.find(
+    (msg: { id: string; content: string }) => msg.id === messageId,
+  );
+  if (message) {
+    messageInput.value = message.content;
+    // Focus the input field
+    void nextTick(() => {
+      inputField.value?.$el?.querySelector('input')?.focus();
+    });
+
+    // Optional: You could also implement a way to update/delete the existing message
+    // when the user submits the edited version
+  }
 }
 
 // Define CSS variables for dark mode styling
