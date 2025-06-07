@@ -3,8 +3,8 @@ import hljs from 'highlight.js';
 import katex from 'katex';
 
 // Import highlight.js CSS files directly
-import 'highlight.js/styles/github.css';
-import 'highlight.js/styles/github-dark-dimmed.css';
+// import 'highlight.js/styles/github.css';
+// import 'highlight.js/styles/googlecode.css';
 
 /**
  * Type definition for the render options
@@ -60,11 +60,7 @@ export function renderMarkdown(content: string, options?: RenderMarkdownOptions)
         try {
           const highlighted = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
           return (
-            '<pre class="hljs code-block hljs-github"><code class="language-' +
-            lang +
-            '">' +
-            highlighted +
-            '</code></pre>'
+            '<pre class="hljs hljs-theme-adaptable"><code class="language-' + lang + '">' + highlighted + '</code></pre>'
           );
         } catch (error) {
           console.error('Error highlighting code:', error);
@@ -72,7 +68,7 @@ export function renderMarkdown(content: string, options?: RenderMarkdownOptions)
       }
 
       // Use default escaping if no language or highlighting fails
-      return '<pre class="hljs code-block hljs-github"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
+      return '<pre class="hljs hljs-theme-adaptable"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
     },
   });
 
