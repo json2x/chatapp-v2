@@ -19,6 +19,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('pages/TestPage.vue'),
   },
 
+  {
+    path: '/textarea-test',
+    component: () => import('pages/TextareaTestPage.vue'),
+  },
+
   // Auth callback route to handle OAuth redirects
   {
     path: '/auth/callback',
