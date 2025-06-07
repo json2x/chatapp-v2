@@ -4,7 +4,7 @@ import { useUserStore } from './user-store';
 import { getConversationById } from 'src/services/conversationService';
 import { getAvailableModels } from 'src/services/modelService';
 import type { Message, AvailableModels } from 'src/types/servicesTypes';
-import { Loading, QSpinnerDots } from 'quasar';
+import { Loading } from 'quasar';
 
 export interface ChatMessage {
   id: string;
@@ -84,15 +84,15 @@ export const useChatStore = defineStore('chat', () => {
     messageLoadError.value = null;
 
     // Show Quasar loading overlay with centered content
-    Loading.show({
-      spinner: QSpinnerDots,
-      message: 'Loading conversation...',
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
-      messageColor: 'white',
-      spinnerSize: 80,
-      spinnerColor: 'primary',
-      customClass: 'centered-loading',
-    });
+    // Loading.show({
+    //   spinner: QSpinnerDots,
+    //   message: 'Loading conversation...',
+    //   backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    //   messageColor: 'white',
+    //   spinnerSize: 80,
+    //   spinnerColor: 'primary',
+    //   customClass: 'centered-loading',
+    // });
 
     try {
       // Fetch the full conversation with messages
@@ -238,25 +238,28 @@ export const useChatStore = defineStore('chat', () => {
         // Only update if we got some models
         if (modelOptions.length > 0) {
           versionOptions.value = modelOptions;
-          
+
           // Check if we need to set a default model
           // Only set if there's no cached model selection
           const savedModel = localStorage.getItem(STORAGE_KEY_SELECTED_MODEL);
           if (!savedModel || !selectedVersion.value) {
             // Try to set gpt-4o-mini as default if available
-            const gpt4oMiniIndex = modelOptions.findIndex(model => 
-              model.toLowerCase().includes('gpt-4o-mini'));
-            
+            const gpt4oMiniIndex = modelOptions.findIndex((model) =>
+              model.toLowerCase().includes('gpt-4o-mini'),
+            );
+
             if (gpt4oMiniIndex >= 0 && modelOptions[gpt4oMiniIndex]) {
               // gpt-4o-mini is available, set it as default
               const defaultModel = modelOptions[gpt4oMiniIndex];
-              if (defaultModel) { // Extra check to ensure it's not undefined
+              if (defaultModel) {
+                // Extra check to ensure it's not undefined
                 updateSelectedModel(defaultModel);
               }
             } else if (modelOptions.length > 0 && modelOptions[0]) {
               // Otherwise use the first model in the list
               const firstModel = modelOptions[0];
-              if (firstModel) { // Extra check to ensure it's not undefined
+              if (firstModel) {
+                // Extra check to ensure it's not undefined
                 updateSelectedModel(firstModel);
               }
             }
