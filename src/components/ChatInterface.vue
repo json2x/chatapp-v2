@@ -36,53 +36,47 @@
           </div>
         </div>
 
-        <!-- <div v-else-if="messages.length > 0 && !isLoadingMessages && !messageLoadError" class="text-center">
-          {{ messages}}
-        </div> -->
+        <!-- Chat messages -->
+        <div class="chat-messages" ref="chatContainer">
+          <div class="messages-container">
+            <template v-for="(message, index) in messages" :key="index">
+              <!-- User messages use our custom UserMessage component -->
+              <user-message
+                v-if="message.sender === 'user'"
+                :content="message.content"
+                :role="'user'"
+                :message-id="message.id"
+                @copied="(success) => handleMessageCopied(success)"
+                @edit="handleEditMessage"
+                class="q-mb-md"
+              />
+              <!-- Assistant messages use our new AssistantMessage component -->
+              <assistant-message
+                v-else
+                :content="message.content"
+                :role="'assistant'"
+                :is-streaming="false"
+                :process-diagrams="true"
+                :max-height="400"
+                @rendered="scrollToBottom"
+                @copied="(success) => handleMessageCopied(success)"
+                @liked="handleMessageLiked"
+                @disliked="handleMessageDisliked"
+                class="q-mb-md"
+              />
+            </template>
 
-        <!-- Chat Messages -->
-        <div v-else class="chat-message-list q-pa-md">
-          <q-chat-message
-            v-for="(message, index) in messages"
-            :key="index"
-            :name="message.sender === 'user' ? userName : 'Assistant'"
-            :sent="message.sender === 'user'"
-            :bg-color="
-              message.sender === 'user'
-                ? $q.dark.isActive
-                  ? 'grey-8'
-                  : 'grey-3'
-                : $q.dark.isActive
-                  ? 'transparent'
-                  : 'white'
-            "
-            :text-color="
-              message.sender === 'user'
-                ? $q.dark.isActive
-                  ? 'white'
-                  : 'black'
-                : $q.dark.isActive
-                  ? 'white'
-                  : 'black'
-            "
-            class="q-mb-md custom-chat-message"
-          >
-            <div v-if="message.sender === 'user'">
-              {{ message.content }}
+            <!-- Assistant typing indicator -->
+            <div v-if="isProcessing" class="typing-indicator q-mb-md">
+              <q-chat-message
+                name="Assistant"
+                bg-color="white"
+                text-color="black"
+                class="custom-chat-message"
+              >
+                <q-spinner-dots size="2rem" color="primary" />
+              </q-chat-message>
             </div>
-            <div v-else v-html="renderMarkdown(message.content)" class="markdown-content"></div>
-          </q-chat-message>
-
-          <!-- Assistant typing indicator -->
-          <div v-if="isProcessing" class="typing-indicator q-mb-md">
-            <q-chat-message
-              name="Assistant"
-              bg-color="white"
-              text-color="black"
-              class="custom-chat-message"
-            >
-              <q-spinner-dots size="2rem" color="primary" />
-            </q-chat-message>
           </div>
         </div>
       </div>
@@ -127,6 +121,8 @@
 import { ref, computed, nextTick, onMounted, watchEffect, useCssVars } from 'vue';
 import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
+import AssistantMessage from './chat/AssistantMessage.vue';
+import UserMessage from './chat/UserMessage.vue';
 import { useQuasar } from 'quasar';
 import ChatSuggestion from './ChatSuggestion.vue';
 import { sendChatMessage, processStreamResponse } from 'src/services/chatService';
@@ -134,7 +130,6 @@ import { getConversationById } from 'src/services/conversationService';
 import type { ChatRequest, ChatStreamResponse } from 'src/types/servicesTypes';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
-import { renderMarkdown } from 'src/misc/markdownRenderer';
 import { storeToRefs } from 'pinia';
 
 const $q = useQuasar();
@@ -147,13 +142,13 @@ const {
   isLoadingMessages,
   messageLoadError,
   conversations,
-  chatSuggestions,
-  activeChatId,
+  activeChatId, // Use activeChatId instead of selectedConversationId
 } = storeToRefs(chatStore);
 
-// Keep activeChat as computed since it's a method in the store
+// Local component state
 const activeChat = computed(() => chatStore.activeChat());
 const messages = computed(() => activeChat.value?.messages || []);
+const chatSuggestions = computed(() => chatStore.chatSuggestions || []);
 
 // Get user information from userStore
 const { userSession } = storeToRefs(userStore);
@@ -163,6 +158,7 @@ const userName = computed(() => userSession.value.fullName || 'User');
 const messageInput = ref('');
 const isProcessing = ref(false);
 const messagesContainer = ref<HTMLElement | null>(null);
+const chatContainer = ref<HTMLElement | null>(null);
 const inputField = ref<{ $el?: HTMLElement } | null>(null);
 const responseTimer = ref<number | null>(null);
 
@@ -372,9 +368,19 @@ async function sendMessage() {
 }
 
 function scrollToBottom() {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  }
+  // Use Vue's nextTick to ensure DOM is updated before scrolling
+  void nextTick(() => {
+    // Use the ref directly instead of querySelector
+    const chatContainerEl = chatContainer.value;
+    if (chatContainerEl) {
+      chatContainerEl.scrollTop = chatContainerEl.scrollHeight;
+    }
+    
+    // Also scroll the outer messagesContainer
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    }
+  });
 }
 
 // Function to stop the assistant response
@@ -422,12 +428,67 @@ watchEffect(() => {
 
 // Additional utility functions
 
-// Function to retry loading messages if there was an error
-const retryLoadMessages = async () => {
+/**
+ * Function to retry loading messages if there was an error
+ */
+function retryLoadMessages() {
   if (activeChat.value) {
-    await chatStore.setActiveChat(activeChat.value.id);
+    void chatStore.setActiveChat(activeChat.value.id);
   }
-};
+}
+
+/**
+ * Format timestamp for display
+ */
+// function formatTimestamp(timestamp: Date): string {
+//   return new Date(timestamp).toLocaleTimeString([], {
+//     hour: '2-digit',
+//     minute: '2-digit',
+//   });
+// }
+
+/**
+ * Handle message copied event
+ */
+function handleMessageCopied(success: boolean): void {
+  $q.notify({
+    message: success ? 'Message copied to clipboard' : 'Failed to copy message',
+    position: 'top',
+    timeout: 500,
+  });
+}
+
+// Handle message liked event
+function handleMessageLiked(): void {
+  console.log('Message liked');
+  // Add any additional logic for handling liked messages
+  // For example, you might want to track this in analytics or send feedback to your API
+}
+
+// Handle message disliked event
+function handleMessageDisliked(): void {
+  console.log('Message disliked');
+  // Add any additional logic for handling disliked messages
+  // For example, you might want to prompt the user for more detailed feedback
+}
+
+// Handle edit message request
+function handleEditMessage(messageId: string): void {
+  console.log('Edit message requested for:', messageId);
+  const message = messages.value.find(
+    (msg: { id: string; content: string }) => msg.id === messageId,
+  );
+  if (message) {
+    messageInput.value = message.content;
+    // Focus the input field
+    void nextTick(() => {
+      inputField.value?.$el?.querySelector('input')?.focus();
+    });
+
+    // Optional: You could also implement a way to update/delete the existing message
+    // when the user submits the edited version
+  }
+}
 
 // Define CSS variables for dark mode styling
 useCssVars(() => {
@@ -442,7 +503,7 @@ useCssVars(() => {
     // Dynamic values based on dark mode
     'scrollbar-thumb-color': isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.2)',
     'chat-message-name-color': isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgb(0, 0, 0)',
-    'message-received-bg': isDark ? 'var(--q-dark-page)' : 'white'
+    'message-received-bg': isDark ? 'var(--q-dark-page)' : 'white',
   };
 });
 
@@ -511,6 +572,10 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   position: relative;
+  max-width: 900px; /* Set a max-width for better readability */
+  margin: 0 auto; /* Center the messages container */
+  width: 100%; /* Take full width up to max-width */
+  padding: 0 16px; /* Add some padding on the sides */
 
   /* Always allocate space for scrollbar to prevent layout shifts */
   &::-webkit-scrollbar {
@@ -550,7 +615,7 @@ onMounted(() => {
   width: 100%;
   /* Ensure content doesn't get cut off by the scrollbar */
   padding-right: 2px;
-  max-width: 750px; /* Match the chat input container max-width */
+  max-width: 900px; /* Match the chat messages container max-width */
   margin: 0 auto;
 }
 
@@ -598,11 +663,13 @@ onMounted(() => {
   padding-bottom: 48px; /* Position input 48px from bottom */
   flex-shrink: 0; /* Prevent this from shrinking */
   transition: background-color 0.3s ease;
+  max-width: 900px; /* Match the chat messages container max-width */
+  margin: 0 auto; /* Center the input container */
+  width: 100%; /* Take full width up to max-width */
 }
 
 .chat-input-container {
-  max-width: 750px;
-  margin: 0 auto;
+  max-width: 100%;
   position: relative;
 }
 

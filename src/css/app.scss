@@ -3,6 +3,14 @@
 // Import Urbanist font from Google Fonts
 @import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap');
 
+// Highlight.js styles are now imported directly in markdownRenderer.ts
+
+// Import highlight.js theme switching styles
+@import './highlight-theme.scss';
+
+// Import highlight.js dark theme overrides
+@import './highlight-dark.scss';
+
 // Apply Urbanist font to the entire app
 body {
   font-family: 'Urbanist', sans-serif;

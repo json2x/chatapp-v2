@@ -2,6 +2,10 @@ import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import katex from 'katex';
 
+// Import highlight.js CSS files directly
+// import 'highlight.js/styles/github.css';
+// import 'highlight.js/styles/googlecode.css';
+
 /**
  * Type definition for the render options
  */
@@ -11,19 +15,19 @@ export interface RenderMarkdownOptions {
    * @default true
    */
   html?: boolean;
-  
+
   /**
    * Whether to convert '\n' in paragraphs into <br>
    * @default true
    */
   breaks?: boolean;
-  
+
   /**
    * Whether to autoconvert URL-like text to links
    * @default true
    */
   linkify?: boolean;
-  
+
   /**
    * Whether to enable language-neutral replacements + quotes beautification
    * @default true
@@ -40,7 +44,7 @@ export interface RenderMarkdownOptions {
  */
 export function renderMarkdown(content: string, options?: RenderMarkdownOptions): string {
   if (!content) return '';
-  
+
   // Preprocess content to convert standard LaTeX to KaTeX format
   const processedContent = preprocessLatex(content);
 
@@ -56,9 +60,7 @@ export function renderMarkdown(content: string, options?: RenderMarkdownOptions)
         try {
           const highlighted = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
           return (
-            '<pre class="hljs"><code class="language-' + lang + '">' +
-            highlighted +
-            '</code></pre>'
+            '<pre class="hljs hljs-theme-adaptable"><code class="language-' + lang + '">' + highlighted + '</code></pre>'
           );
         } catch (error) {
           console.error('Error highlighting code:', error);
@@ -66,11 +68,7 @@ export function renderMarkdown(content: string, options?: RenderMarkdownOptions)
       }
 
       // Use default escaping if no language or highlighting fails
-      return (
-        '<pre class="hljs"><code>' +
-        md.utils.escapeHtml(str) +
-        '</code></pre>'
-      );
+      return '<pre class="hljs hljs-theme-adaptable"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
     },
   });
 
@@ -83,7 +81,7 @@ export function renderMarkdown(content: string, options?: RenderMarkdownOptions)
 
 /**
  * Adds KaTeX rendering rules to the markdown-it instance
- * 
+ *
  * @param md - The markdown-it instance
  */
 function addKatexRenderRules(md: MarkdownIt): void {
@@ -146,15 +144,15 @@ function addKatexRenderRules(md: MarkdownIt): void {
     try {
       // Ensure content is a string with a fallback to empty string
       const content = tokens[idx]?.content || '';
-      
+
       // Set up KaTeX options
       const options: katex.KatexOptions = {
         displayMode: false,
         throwOnError: false,
         trust: true,
-        output: 'html' as const
+        output: 'html' as const,
       };
-      
+
       // Render the content
       return `<span class="math inline">${katex.renderToString(content, options)}</span>`;
     } catch (error) {
@@ -168,15 +166,15 @@ function addKatexRenderRules(md: MarkdownIt): void {
     try {
       // Ensure content is a string with a fallback to empty string
       const content = tokens[idx]?.content || '';
-      
+
       // Set up KaTeX options
       const options: katex.KatexOptions = {
         displayMode: true,
         throwOnError: false,
         trust: true,
-        output: 'html' as const
+        output: 'html' as const,
       };
-      
+
       // Render the content
       return `<div class="math display">${katex.renderToString(content, options)}</div>`;
     } catch (error) {
@@ -189,57 +187,51 @@ function addKatexRenderRules(md: MarkdownIt): void {
 
 /**
  * Preprocesses LaTeX content to make it compatible with KaTeX and mhchem.
- * 
+ *
  * @param content - The content to preprocess
  * @returns The preprocessed content
  */
 function preprocessLatex(content: string): string {
   // Replace \rightarrow with \to (common in chemical equations)
   let processed = content.replace(/\\rightarrow/g, '\\to');
-  
+
   // Special case for photosynthesis equation - handle this first
   processed = processed.replace(/\ce\{H_2\}\\text\{O\}/g, '\\ce{H2O}');
   processed = processed.replace(/\ce\{H_2\}/g, '\\ce{H2}');
   processed = processed.replace(/\ce\{C_6\}\\text\{H\}_{12}\\ce\{O_6\}/g, '\\ce{C6H12O6}');
   processed = processed.replace(/\ce\{C_6\}/g, '\\ce{C6}');
-  
+
   // Handle chemical formulas in inline math
   processed = processed.replace(/\$(.*?)\$/g, (match, formula) => {
     // Convert \text{H2O} to \ce{H2O} for chemical formulas
-    let processedFormula = formula
-      .replace(/\\text\{([A-Z][a-zA-Z0-9]*)\}/g, '\\ce{$1}');
-      
+    let processedFormula = formula.replace(/\\text\{([A-Z][a-zA-Z0-9]*)\}/g, '\\ce{$1}');
+
     // Additional processing for photosynthesis equation
     if (processedFormula.includes('H_2') || processedFormula.includes('C_6')) {
-      processedFormula = processedFormula
-        .replace(/H_2/g, 'H2')
-        .replace(/C_6/g, 'C6');
+      processedFormula = processedFormula.replace(/H_2/g, 'H2').replace(/C_6/g, 'C6');
     }
-    
+
     return `$${processedFormula}$`;
   });
-  
+
   // Do the same for display math
   processed = processed.replace(/\$\$(.*?)\$\$/g, (match, formula) => {
     // Convert \text{H2O} to \ce{H2O} for chemical formulas
-    let processedFormula = formula
-      .replace(/\\text\{([A-Z][a-zA-Z0-9]*)\}/g, '\\ce{$1}');
-      
+    let processedFormula = formula.replace(/\\text\{([A-Z][a-zA-Z0-9]*)\}/g, '\\ce{$1}');
+
     // Additional processing for photosynthesis equation
     if (processedFormula.includes('H_2') || processedFormula.includes('C_6')) {
-      processedFormula = processedFormula
-        .replace(/H_2/g, 'H2')
-        .replace(/C_6/g, 'C6');
+      processedFormula = processedFormula.replace(/H_2/g, 'H2').replace(/C_6/g, 'C6');
     }
-    
+
     return `$$${processedFormula}$$`;
   });
-  
+
   // Make sure we don't convert markdown links to math
   // This regex looks for markdown links [text](url) and preserves them
   processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match) => {
     return match;
   });
-  
+
   return processed;
 }

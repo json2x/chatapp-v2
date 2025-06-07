@@ -88,17 +88,8 @@
             <q-item-label v-if="conversations.length !== 0" header>Recent</q-item-label>
           </div>
 
-          <!-- Empty state loading -->
-          <div
-            v-if="isLoadingConversations && conversations.length === 0"
-            class="q-pa-md text-center"
-          >
-            <q-spinner-dots color="primary" size="2em" />
-            <div class="q-mt-sm text-grey-7">Loading conversations...</div>
-          </div>
-
           <!-- Error state -->
-          <div v-else-if="loadError" class="q-pa-md text-center">
+          <div v-if="loadError" class="q-pa-md text-center">
             <div class="q-mt-sm text-grey-7">{{ loadError || 'Error loading conversations' }}</div>
             <q-btn
               flat

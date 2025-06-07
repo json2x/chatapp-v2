@@ -1,0 +1,12 @@
+/**
+ * Dark mode theme switching for highlight.js
+ */
+
+/* Hide the light theme styles when in dark mode */
+.body--dark {
+  /* Override background color for code blocks in dark mode */
+  .code-block-wrapper .hljs {
+    background-color: #22272e !important;
+    color: #adbac7 !important;
+  }
+}

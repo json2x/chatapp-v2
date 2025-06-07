@@ -1,0 +1,270 @@
+/**
+ * Highlight.js theme switching styles
+ * Uses github theme for light mode and github-dark-dimmed for dark mode
+ */
+
+/* Base styling for code blocks that applies in both themes */
+.code-block-wrapper {
+  margin: 1rem 0.5rem;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.code-block-wrapper pre {
+  margin: 0;
+}
+
+/* Light mode styling */
+.body--light .code-block-wrapper {
+  border: 1px solid #d0d7de;
+
+  .hljs {
+    background-color: #f6f8fa !important;
+    color: #24292f !important; /* black-5 equivalent for light mode */
+  }
+  
+  /* Apply googlecode theme in light mode */
+  .hljs-theme-adaptable {
+    /* GoogleCode theme colors */
+    color: #000 !important;
+    background: #f8f8f8 !important;
+    
+    .hljs-comment {
+      color: #998 !important;
+    }
+    
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-title,
+    .hljs-section,
+    .hljs-doctag,
+    .hljs-name,
+    .hljs-strong {
+      color: #000080 !important;
+      font-weight: bold !important;
+    }
+    
+    .hljs-variable,
+    .hljs-template-variable {
+      color: #660 !important;
+    }
+    
+    .hljs-string,
+    .hljs-regexp,
+    .hljs-link {
+      color: #008000 !important;
+    }
+    
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-number,
+    .hljs-meta,
+    .hljs-literal {
+      color: #1c00cf !important;
+    }
+    
+    .hljs-title,
+    .hljs-section {
+      color: #900 !important;
+    }
+    
+    .hljs-attr,
+    .hljs-attribute {
+      color: #458 !important;
+    }
+    
+    .hljs-type,
+    .hljs-class .hljs-title,
+    .hljs-built_in {
+      color: #0086b3 !important;
+    }
+    
+    .hljs-tag {
+      color: #000080 !important;
+    }
+  }
+}
+
+/* Dark mode styling */
+.body--dark .code-block-wrapper {
+  border: 1px solid #444c56;
+
+  .hljs {
+    background-color: #22272e !important;
+  }
+  
+  /* Apply dark theme styling */
+  .hljs-theme-adaptable {
+    color: #adbac7 !important;
+    background: #22272e !important;
+    
+    .hljs-comment {
+      color: #768390 !important;
+    }
+    
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-doctag,
+    .hljs-name,
+    .hljs-strong {
+      color: #f47067 !important;
+      font-weight: bold !important;
+    }
+    
+    .hljs-variable,
+    .hljs-template-variable {
+      color: #dcbdfb !important;
+    }
+    
+    .hljs-string,
+    .hljs-regexp,
+    .hljs-link {
+      color: #96d0ff !important;
+    }
+    
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-number,
+    .hljs-meta,
+    .hljs-literal {
+      color: #6cb6ff !important;
+    }
+    
+    .hljs-title,
+    .hljs-section {
+      color: #dcbdfb !important;
+    }
+    
+    .hljs-attr,
+    .hljs-attribute {
+      color: #6cb6ff !important;
+    }
+    
+    .hljs-type,
+    .hljs-class .hljs-title,
+    .hljs-built_in {
+      color: #f69d50 !important;
+    }
+    
+    .hljs-tag {
+      color: #8ddb8c !important;
+    }
+  }
+}
+
+/* Wrapper for code blocks with header */
+.code-block-wrapper {
+  margin: 1rem 0.5rem;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  /* Theme-specific styling */
+  .body--light & {
+    border: 1px solid #d0d7de;
+  }
+
+  .body--dark & {
+    border: 1px solid #444c56;
+  }
+}
+
+/* Additional styling for code blocks */
+.code-block {
+  margin: 0; /* Remove margin as it's now handled by the wrapper */
+  position: relative;
+
+  /* Transition for smooth theme switching */
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+
+  /* Remove border radius from pre as it's now handled by the wrapper */
+  &.hljs {
+    border-radius: 0;
+    border-top: none;
+    margin: 0;
+
+    /* Ensure proper padding */
+    code {
+      padding: 1rem;
+      display: block;
+    }
+  }
+}
+
+/* Enhance code block header styling */
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+
+  /* Theme-specific styling */
+  .body--light & {
+    background-color: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+  }
+
+  .body--dark & {
+    background-color: #2d333b;
+    border-bottom: 1px solid #444c56;
+  }
+}
+
+/* Language badge styling */
+.code-language {
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+
+  /* Theme-specific styling */
+  .body--light & {
+    color: #57606a;
+  }
+
+  .body--dark & {
+    color: #adbac7;
+  }
+}
+
+/* Copy button styling */
+.code-copy-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  /* Icon styling */
+  i {
+    font-size: 16px;
+  }
+
+  /* Theme-specific styling */
+  .body--light & {
+    background-color: transparent;
+    color: #57606a;
+
+    &:hover {
+      background-color: #e0e0e0;
+    }
+  }
+
+  .body--dark & {
+    background-color: transparent;
+    color: #adbac7;
+
+    &:hover {
+      background-color: #444c56;
+    }
+  }
+}
