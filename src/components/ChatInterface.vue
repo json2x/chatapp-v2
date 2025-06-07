@@ -158,6 +158,7 @@ const userName = computed(() => userSession.value.fullName || 'User');
 const messageInput = ref('');
 const isProcessing = ref(false);
 const messagesContainer = ref<HTMLElement | null>(null);
+const chatContainer = ref<HTMLElement | null>(null);
 const inputField = ref<{ $el?: HTMLElement } | null>(null);
 const responseTimer = ref<number | null>(null);
 
@@ -367,9 +368,19 @@ async function sendMessage() {
 }
 
 function scrollToBottom() {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  }
+  // Use Vue's nextTick to ensure DOM is updated before scrolling
+  void nextTick(() => {
+    // Use the ref directly instead of querySelector
+    const chatContainerEl = chatContainer.value;
+    if (chatContainerEl) {
+      chatContainerEl.scrollTop = chatContainerEl.scrollHeight;
+    }
+    
+    // Also scroll the outer messagesContainer
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    }
+  });
 }
 
 // Function to stop the assistant response
