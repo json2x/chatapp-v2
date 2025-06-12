@@ -24,12 +24,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('pages/TextareaTestPage.vue'),
   },
 
-  {
-    path: '/draft-test',
-    component: () => import('layouts/ChatLayout.vue'),
-    children: [{ path: '', component: () => import('pages/DraftPersistenceTest.vue') }],
-  },
-
   // Auth callback route to handle OAuth redirects
   {
     path: '/auth/callback',
