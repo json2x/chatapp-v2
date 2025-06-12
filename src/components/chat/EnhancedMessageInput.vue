@@ -102,25 +102,89 @@
 
     <!-- File attachments preview area -->
     <div v-if="messageState.attachments.length > 0" class="attachments-preview q-mt-sm">
-      <div class="row q-col-gutter-xs">
+      <div class="row q-col-gutter-sm">
         <div
           v-for="(file, index) in messageState.attachments"
           :key="index"
           class="col-auto attachment-item"
         >
-          <q-chip
-            removable
-            @remove="removeAttachment(index)"
-            :color="getFileColor(file)"
-            text-color="white"
-            class="attachment-chip"
-          >
-            <q-icon :name="getFileIcon(file)" left />
-            <span class="truncate-filename">{{ truncateFilename(file.name, 15) }}</span>
-            <template v-if="file.size"> ({{ formatFileSize(file.size) }}) </template>
-          </q-chip>
+          <!-- File preview card -->
+          <q-card class="file-preview-card" bordered flat>
+            <!-- Preview content -->
+            <div class="file-preview-content" @click="openFilePreview(file)">
+              <!-- Image preview -->
+              <div v-if="isImageFile(file)" class="image-preview">
+                <img :src="getFilePreviewUrl(file)" :alt="file.name" class="preview-image" />
+              </div>
+              
+              <!-- Text file preview -->
+              <div v-else-if="isTextFile(file)" class="text-preview">
+                <div class="text-preview-content" v-html="getTextPreview(file)"></div>
+              </div>
+              
+              <!-- Document/generic file preview -->
+              <div v-else class="document-preview">
+                <q-icon :name="getFileIcon(file)" size="24px" :color="getFileColor(file)" />
+              </div>
+            </div>
+            
+            <!-- File info footer -->
+            <q-card-section class="file-info q-pa-xs">
+              <div class="file-name text-weight-medium">{{ truncateFilename(file.name, 10) }}</div>
+              <div class="file-meta">
+                <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                <q-btn
+                  round
+                  flat
+                  dense
+                  icon="mdi-close"
+                  size="xs"
+                  class="remove-btn"
+                  @click="removeAttachment(index)"
+                />
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
       </div>
+      
+      <!-- Preview modal for larger view -->
+      <q-dialog v-model="previewModalOpen" maximized>
+        <q-card class="preview-modal-card">
+          <q-card-section class="preview-modal-header row items-center q-pb-none">
+            <div class="text-h6">{{ currentPreviewFile ? currentPreviewFile.name : '' }}</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+          
+          <q-card-section class="preview-modal-content">
+            <!-- Image preview -->
+            <div v-if="currentPreviewFile && isImageFile(currentPreviewFile)" class="full-image-preview">
+              <img :src="getFilePreviewUrl(currentPreviewFile)" :alt="currentPreviewFile.name" class="full-preview-image" />
+            </div>
+            
+            <!-- Text preview -->
+            <div v-else-if="currentPreviewFile && isTextFile(currentPreviewFile)" class="full-text-preview">
+              <pre class="text-content">{{ filePreviewContent }}</pre>
+            </div>
+            
+            <!-- Document/generic preview -->
+            <div v-else class="full-document-preview">
+              <div class="document-icon-container">
+                <q-icon 
+                  :name="currentPreviewFile ? getFileIcon(currentPreviewFile) : 'mdi-file'" 
+                  size="128px" 
+                  :color="currentPreviewFile ? getFileColor(currentPreviewFile) : 'grey'" 
+                />
+              </div>
+              <div class="text-center q-mt-md">
+                <p>Preview not available for this file type</p>
+                <p v-if="currentPreviewFile" class="text-caption">{{ currentPreviewFile.type || 'Unknown type' }}</p>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </div>
 
     <!-- Hidden file input -->
@@ -144,7 +208,24 @@ import { useDraftPersistence } from '../../composables/useDraftPersistence';
 const MAX_CHARACTER_LIMIT = 4000;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const LARGE_TEXT_THRESHOLD = 2000;
-const SUPPORTED_FILE_TYPES = ['image/*', 'text/*', '.pdf', '.doc', '.docx'];
+const SUPPORTED_FILE_TYPES = [
+  'image/*',
+  'text/*',
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.csv',
+];
+
+// File validation error types
+const FILE_ERROR_TYPE = {
+  SIZE: 'size',
+  TYPE: 'type',
+  LIMIT: 'limit',
+  GENERIC: 'generic',
+} as const;
 
 // Default file type to icon mapping
 const DEFAULT_FILE_TYPE_ICONS = {
@@ -155,7 +236,6 @@ const DEFAULT_FILE_TYPE_ICONS = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'mdi-file-word',
   'application/vnd.ms-excel': 'mdi-file-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'mdi-file-excel',
-  'application/zip': 'mdi-zip-box',
   'video/': 'mdi-video',
   'audio/': 'mdi-music',
   default: 'mdi-file',
@@ -170,7 +250,6 @@ const DEFAULT_FILE_TYPE_COLORS = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'blue-6',
   'application/vnd.ms-excel': 'green-8',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'green-8',
-  'application/zip': 'yellow-8',
   'video/': 'purple-8',
   'audio/': 'purple-8',
   default: 'grey',
@@ -220,6 +299,13 @@ interface MessageState {
   attachments: File[];
 }
 
+// File error interface
+interface FileError {
+  file: string;
+  type: string;
+  message: string;
+}
+
 // Define props with defaults
 const props = withDefaults(defineProps<Props>(), {
   isProcessing: false,
@@ -240,6 +326,10 @@ const heightCalculator = ref<HTMLElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const isDraggingFile = ref(false);
 const dragCounter = ref(0); // Counter to handle nested drag events
+const fileErrors = ref<FileError[]>([]);
+const previewModalOpen = ref(false);
+const currentPreviewFile = ref<File | null>(null);
+const filePreviewContent = ref('');
 
 // Textarea configuration
 const MIN_TEXTAREA_HEIGHT = 54; // Minimum height in pixels
@@ -489,16 +579,6 @@ function handleFileDrop(event: DragEvent): void {
 
   // Process dropped files
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-    // Check if we can accept more attachments
-    if (messageState.attachments.length >= props.maxAttachments) {
-      $q.notify({
-        message: `Maximum ${props.maxAttachments} attachments allowed`,
-        color: 'warning',
-        icon: 'warning',
-      });
-      return;
-    }
-
     const files = Array.from(event.dataTransfer.files);
     processFiles(files);
   }
@@ -523,31 +603,42 @@ function openFileSelector(): void {
 }
 
 /**
- * Process files for attachment
+ * Process files for attachment with comprehensive validation
  */
 function processFiles(files: File[]): void {
   const validFiles: File[] = [];
+  const errors: FileError[] = [];
 
   // Validate files
   for (const file of files) {
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      $q.notify({
-        message: `File ${file.name} exceeds the maximum size limit of ${formatFileSize(MAX_FILE_SIZE)}`,
-        color: 'negative',
-        icon: 'warning',
+    // Check if we've reached the maximum attachments
+    if (messageState.attachments.length + validFiles.length >= props.maxAttachments) {
+      errors.push({
+        file: file.name,
+        type: FILE_ERROR_TYPE.LIMIT,
+        message: `${file.name}: Maximum ${props.maxAttachments} attachments allowed`,
       });
       continue;
     }
 
-    // Check if we've reached the maximum attachments
-    if (messageState.attachments.length + validFiles.length >= props.maxAttachments) {
-      $q.notify({
-        message: `Maximum ${props.maxAttachments} attachments allowed`,
-        color: 'negative',
-        icon: 'warning',
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      errors.push({
+        file: file.name,
+        type: FILE_ERROR_TYPE.SIZE,
+        message: `${file.name}: Exceeds the maximum size limit of ${formatFileSize(MAX_FILE_SIZE)}`,
       });
-      break;
+      continue;
+    }
+
+    // Check file type
+    if (!isFileTypeSupported(file)) {
+      errors.push({
+        file: file.name,
+        type: FILE_ERROR_TYPE.TYPE,
+        message: `${file.name}: File type not supported`,
+      });
+      continue;
     }
 
     validFiles.push(file);
@@ -561,6 +652,36 @@ function processFiles(files: File[]): void {
     // Save draft with new attachments
     if (props.enableDraftPersistence) {
       saveCurrentDraft();
+    }
+  }
+
+  // Handle errors
+  if (errors.length > 0) {
+    // Add new errors to existing errors
+    fileErrors.value = [...fileErrors.value, ...errors];
+
+    // Show notification for the first error
+    if (errors.length === 1 && errors[0]) {
+      $q.notify({
+        message: errors[0].message || 'File could not be attached',
+        color: 'negative',
+        icon: 'warning',
+        timeout: 3000,
+      });
+    } else {
+      $q.notify({
+        message: `${errors.length} files could not be attached. See details below.`,
+        color: 'negative',
+        icon: 'warning',
+        timeout: 3000,
+      });
+    }
+
+    // Auto-dismiss errors after 8 seconds if there aren't too many
+    if (fileErrors.value.length <= 3) {
+      setTimeout(() => {
+        clearFileErrors();
+      }, 8000);
     }
   }
 
@@ -646,8 +767,108 @@ function getFileIcon(file: File): string {
 }
 
 /**
- * Get appropriate color for file type
+ * Check if file is an image
  */
+function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/');
+}
+
+/**
+ * Check if file is a text file
+ */
+function isTextFile(file: File): boolean {
+  return file.type.startsWith('text/') || 
+         file.name.endsWith('.txt') || 
+         file.name.endsWith('.md') || 
+         file.name.endsWith('.csv') || 
+         file.name.endsWith('.json');
+}
+
+/**
+ * Get preview URL for file
+ */
+function getFilePreviewUrl(file: File): string {
+  if (isImageFile(file)) {
+    return URL.createObjectURL(file);
+  }
+  return '';
+}
+
+/**
+ * Get text preview content
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function getTextPreview(file: File): string {
+  // For initial preview, show a placeholder
+  return '<div class="text-center text-grey">Text preview</div>';
+}
+
+/**
+ * Open file preview modal
+ */
+function openFilePreview(file: File): void {
+  currentPreviewFile.value = file;
+  
+  if (isTextFile(file)) {
+    // Read text file content
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        // Limit preview to first 10000 characters
+        const content = String(e.target.result as string);
+        filePreviewContent.value = content.length > 10000 
+          ? content.substring(0, 10000) + '\n[Content truncated...]' 
+          : content;
+      } else {
+        filePreviewContent.value = 'Unable to read file content';
+      }
+    };
+    reader.onerror = () => {
+      filePreviewContent.value = 'Error reading file';
+    };
+    reader.readAsText(file);
+  }
+  
+  previewModalOpen.value = true;
+}
+
+/**
+ * Check if file type is supported
+ */
+function isFileTypeSupported(file: File): boolean {
+  const fileType = file.type;
+  const fileName = file.name;
+  const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+
+  // Check if the file type matches any of the supported types
+  for (const supportedType of SUPPORTED_FILE_TYPES) {
+    // Handle wildcard types like 'image/*'
+    if (supportedType.endsWith('/*') && fileType.startsWith(supportedType.replace('/*', '/'))) {
+      return true;
+    }
+    // Handle specific extensions like '.pdf'
+    else if (
+      supportedType.startsWith('.') &&
+      fileExtension.toLowerCase() === supportedType.toLowerCase()
+    ) {
+      return true;
+    }
+    // Handle exact matches
+    else if (fileType === supportedType) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Clear all file errors
+ */
+function clearFileErrors(): void {
+  fileErrors.value = [];
+}
+
 function getFileColor(file: File): string {
   // Create merged mapping
   const mergedMap = { ...DEFAULT_FILE_TYPE_COLORS, ...(props.fileTypeColors || {}) };
@@ -911,6 +1132,147 @@ function handleKeydown(event: KeyboardEvent): void {
           text-overflow: ellipsis;
           vertical-align: bottom;
         }
+      }
+    }
+  }
+
+  // File preview styling
+  .file-preview-card {
+    width: 90px;
+    max-width: 90px;
+    transition: transform 0.2s ease;
+    overflow: hidden;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .file-preview-content {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      background-color: #f5f5f5;
+      
+      .image-preview {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        
+        .preview-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+      
+      .text-preview {
+        width: 100%;
+        height: 100%;
+        padding: 8px;
+        overflow: hidden;
+        font-size: 11px;
+        color: #333;
+        background-color: #fff;
+        border: 1px solid #eee;
+        
+        .text-preview-content {
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+      }
+      
+      .document-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+    }
+    
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+      
+      .file-name {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .file-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 4px;
+        
+        .file-size {
+          font-size: 11px;
+          color: #666;
+        }
+        
+        .remove-btn {
+          margin-right: -8px;
+        }
+      }
+    }
+  }
+  
+  // Preview modal styling
+  .preview-modal-card {
+    .preview-modal-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      
+      .full-image-preview {
+        max-width: 100%;
+        max-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .full-preview-image {
+          max-width: 100%;
+          max-height: 80vh;
+          object-fit: contain;
+        }
+      }
+      
+      .full-text-preview {
+        width: 100%;
+        max-height: 80vh;
+        overflow: auto;
+        padding: 16px;
+        background-color: #f8f8f8;
+        border-radius: 4px;
+        
+        .text-content {
+          white-space: pre-wrap;
+          word-break: break-word;
+          font-family: monospace;
+          font-size: 14px;
+        }
+      }
+      
+      .full-document-preview {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
     }
   }
