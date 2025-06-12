@@ -2,8 +2,19 @@
   <q-layout view="hHh lpR fFf">
     <q-header elevated class="bg-primary text-white">
       <q-toolbar>
-        <q-toolbar-title>Enhanced Message Input Test</q-toolbar-title>
-        <q-btn flat round dense icon="home" to="/" />
+        <q-toolbar-title>Message Input Test</q-toolbar-title>
+        <q-space />
+        <q-btn-toggle
+          v-model="darkMode"
+          flat
+          toggle-color="amber"
+          :options="[
+            {label: 'Light', value: false, icon: 'light_mode'},
+            {label: 'Dark', value: true, icon: 'dark_mode'}
+          ]"
+          @update:model-value="toggleDarkMode"
+        />
+        <q-btn flat round dense icon="home" to="/" class="q-ml-sm" />
       </q-toolbar>
     </q-header>
     
@@ -13,12 +24,12 @@
       <div class="col-12 col-md-6">
         <q-card class="q-pa-md">
           <q-card-section>
-            <div class="text-h6">Enhanced Message Input Test</div>
+            <div class="text-h6">Message Input Test</div>
             <div class="text-subtitle2">Auto-expanding textarea with character counting</div>
           </q-card-section>
           
           <q-card-section>
-            <enhanced-message-input 
+            <MessageInput 
               :is-processing="isProcessing"
               :initial-text="initialText"
               :max-attachments="5"
@@ -117,8 +128,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import EnhancedMessageInput from 'src/components/chat/EnhancedMessageInput.vue';
+import { ref, reactive, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
+import MessageInput from 'src/components/chat/MessageInput.vue';
 
 // Define message interface to match the component's MessageData
 interface MessageData {
@@ -126,11 +138,26 @@ interface MessageData {
   attachments: File[];
 }
 
+// Initialize Quasar framework utilities
+const $q = useQuasar();
+
 // Component state
 const isProcessing = ref(false);
 const initialText = ref('');
 const lastMessage = ref<MessageData | null>(null);
 const key = ref(0);
+const darkMode = ref($q.dark.isActive);
+
+// Toggle dark mode function
+function toggleDarkMode(value: boolean) {
+  $q.dark.set(value);
+}
+
+// Initialize dark mode on component mount
+onMounted(() => {
+  // Set initial dark mode state based on system preference or previous setting
+  darkMode.value = $q.dark.isActive;
+});
 
 // Acceptance criteria checklist
 const criteria = reactive({

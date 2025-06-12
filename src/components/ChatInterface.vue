@@ -85,33 +85,14 @@
     <!-- Input Area -->
     <div class="q-px-md q-pt-md q-pb-xl chat-input">
       <div class="row items-center chat-input-container">
-        <q-input
-          v-model="messageInput"
-          outlined
-          placeholder="Ask Mr Roboto"
-          dense
-          :bg-color="$q.dark.isActive ? 'transparent' : 'white'"
-          class="chat-prompt-input col"
-          :class="{ 'dark-input': $q.dark.isActive }"
-          :color="$q.dark.isActive ? 'white' : 'primary'"
-          @keyup.enter="sendMessage"
-          ref="inputField"
-        >
-          <template v-slot:append>
-            <!-- Show mic and send icons when not processing -->
-            <template v-if="!isProcessing">
-              <q-icon name="mdi-microphone" class="cursor-pointer q-mr-sm primary-icon" />
-              <q-icon name="mdi-send" @click="sendMessage" class="cursor-pointer primary-icon" />
-            </template>
-            <!-- Show stop button when processing -->
-            <template v-else>
-              <div class="stop-button-container">
-                <q-icon name="mdi-stop" @click="stopResponse" class="cursor-pointer stop-button" />
-                <div class="rotating-overlay"></div>
-              </div>
-            </template>
-          </template>
-        </q-input>
+        <MessageInput
+          class="col"
+          :is-processing="isProcessing"
+          :placeholder="'Ask Mr Roboto'"
+          :session-id="sessionId"
+          @send="handleMessageSend"
+          @stop="stopResponse"
+        />
       </div>
     </div>
   </div>
@@ -123,6 +104,7 @@ import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
 import AssistantMessage from './chat/AssistantMessage.vue';
 import UserMessage from './chat/UserMessage.vue';
+import MessageInput from './chat/MessageInput.vue';
 import { useQuasar } from 'quasar';
 import ChatSuggestion from './ChatSuggestion.vue';
 import { sendChatMessage, processStreamResponse } from 'src/services/chatService';
@@ -131,6 +113,13 @@ import type { ChatRequest, ChatStreamResponse } from 'src/types/servicesTypes';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
 import { storeToRefs } from 'pinia';
+
+// Extend the ChatMessage type to include attachments
+declare module 'src/stores/chat-store' {
+  interface ChatMessage {
+    attachments?: File[];
+  }
+}
 
 const $q = useQuasar();
 const chatStore = useChatStore();
@@ -147,37 +136,44 @@ const {
 
 // Local component state
 const activeChat = computed(() => chatStore.activeChat());
-const messages = computed(() => activeChat.value?.messages || []);
+const messages = computed(() => {
+  const chat = activeChat.value;
+  return chat ? chat.messages || [] : [];
+});
 const chatSuggestions = computed(() => chatStore.chatSuggestions || []);
+
+// Computed property for session ID to use with MessageInput
+const sessionId = computed(() => {
+  const chat = activeChat.value;
+  return chat ? chat.id : 'default';
+});
 
 // Get user information from userStore
 const { userSession } = storeToRefs(userStore);
 const userName = computed(() => userSession.value.fullName || 'User');
 
 // Local reactive references
-const messageInput = ref('');
 const isProcessing = ref(false);
 const messagesContainer = ref<HTMLElement | null>(null);
 const chatContainer = ref<HTMLElement | null>(null);
-const inputField = ref<{ $el?: HTMLElement } | null>(null);
 const responseTimer = ref<number | null>(null);
 
 function applySuggestion(suggestion: { title: string; description: string }) {
-  messageInput.value = `${suggestion.title} ${suggestion.description}`;
-  // Focus on the input after applying suggestion
-  void nextTick(() => {
-    const inputEl = document.querySelector('.chat-prompt-input input');
-    if (inputEl) {
-      (inputEl as HTMLInputElement).focus();
-    }
-  });
+  // Apply the suggestion directly by calling handleMessageSend
+  void handleMessageSend({ text: suggestion.title, attachments: [] });
 }
 
-async function sendMessage() {
-  if (!messageInput.value.trim() || isProcessing.value) return;
-
-  const userMessage = messageInput.value.trim();
-  messageInput.value = ''; // Clear input immediately
+/**
+ * Handle message send event from MessageInput component
+ */
+async function handleMessageSend(messageData: { text: string; attachments: File[] }) {
+  if (isProcessing.value) return;
+  
+  const userMessage = messageData.text.trim();
+  const hasAttachments = messageData.attachments.length > 0;
+  
+  // Don't proceed if there's no message text and no attachments
+  if (!userMessage && !hasAttachments) return;
 
   // Get the selected model from the store using the reactive ref
   const model = selectedVersion.value;
@@ -188,12 +184,23 @@ async function sendMessage() {
   // The chat store will now create a new chat if needed when we add a message
   // No need to explicitly call createNewChat()
 
+  // Format message content to include attachment information if present
+  let messageContent = userMessage;
+  
+  // If there are attachments, add information about them to the message
+  if (hasAttachments) {
+    const attachmentInfo = messageData.attachments.map(file => `[File: ${file.name} (${formatFileSize(file.size)})]`).join('\n');
+    messageContent = messageContent ? `${messageContent}\n\n${attachmentInfo}` : attachmentInfo;
+  }
+  
   // Add the user message to the UI immediately
   chatStore.addMessage({
     id: userMessageId,
-    content: userMessage,
+    content: messageContent,
     sender: 'user',
     timestamp: new Date(),
+    // Store attachments in the message for potential future use
+    ...(hasAttachments ? { attachments: messageData.attachments } : {}),
   });
 
   // Set the subtitle to a three-dot spinner
@@ -213,7 +220,7 @@ async function sendMessage() {
     // Prepare the chat request
     const chatRequest: ChatRequest = {
       model,
-      message: userMessage,
+      message: messageContent, // Use the formatted message that includes attachment info
     };
 
     // If there's an active conversation with a server-generated ID, include it
@@ -330,13 +337,7 @@ async function sendMessage() {
           })();
         }
 
-        // Focus the input field after response
-        void nextTick(() => {
-          if (inputField.value && inputField.value.$el) {
-            const input = inputField.value.$el.querySelector('input');
-            if (input) input.focus();
-          }
-        });
+        // No need to focus input field - MessageInput handles focus internally
       },
       (error: Error) => {
         // Handle stream errors
@@ -357,13 +358,7 @@ async function sendMessage() {
       message: 'Failed to send message. Please try again.',
     });
 
-    // Focus the input field after error
-    void nextTick(() => {
-      if (inputField.value && inputField.value.$el) {
-        const input = inputField.value.$el.querySelector('input');
-        if (input) input.focus();
-      }
-    });
+    // No need to focus input field - MessageInput handles focus internally
   }
 }
 
@@ -394,13 +389,7 @@ function stopResponse() {
   // Reset processing state immediately
   isProcessing.value = false;
 
-  // Focus the input field after stopping
-  void nextTick(() => {
-    if (inputField.value && inputField.value.$el) {
-      const input = inputField.value.$el.querySelector('input');
-      if (input) input.focus();
-    }
-  });
+  // No need to focus input field - MessageInput handles focus internally
 }
 
 // MathJax will be loaded by the external markdownRenderer module
@@ -427,6 +416,17 @@ watchEffect(() => {
 });
 
 // Additional utility functions
+
+/**
+ * Format file size in a human-readable format
+ */
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 /**
  * Function to retry loading messages if there was an error
@@ -478,15 +478,12 @@ function handleEditMessage(messageId: string): void {
   const message = messages.value.find(
     (msg: { id: string; content: string }) => msg.id === messageId,
   );
+  // We can't directly set the text in MessageInput since it manages its own state
+  // Instead, we could emit an event or use a ref to the MessageInput component
+  // For now, we'll just log this action
   if (message) {
-    messageInput.value = message.content;
-    // Focus the input field
-    void nextTick(() => {
-      inputField.value?.$el?.querySelector('input')?.focus();
-    });
-
-    // Optional: You could also implement a way to update/delete the existing message
-    // when the user submits the edited version
+    console.log('Message content to edit:', message.content);
+    // TODO: Implement proper edit functionality with MessageInput component
   }
 }
 
@@ -507,10 +504,10 @@ useCssVars(() => {
   };
 });
 
+// Set up component when mounted
 onMounted(() => {
-  if (activeChat.value) {
-    scrollToBottom();
-  }
+  // Scroll to bottom of chat
+  scrollToBottom();
 
   // Set up scroll event listener for showing/hiding scrollbar
   const messagesEl = messagesContainer.value;

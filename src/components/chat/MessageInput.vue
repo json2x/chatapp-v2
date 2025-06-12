@@ -1,6 +1,7 @@
 <template>
   <div
     class="enhanced-message-input"
+    @dragenter.prevent="handleDragEnter"
     @dragover.prevent="handleDragOver"
     @dragleave.prevent="handleDragLeave"
     @drop.prevent="handleFileDrop"
@@ -15,7 +16,7 @@
     </div>
 
     <div
-      class="message-input-container q-pa-sm q-mb-sm rounded-borders"
+      class="message-input-container q-pa-sm q-mb-sm q-dark-box"
       :class="{
         'is-processing': isProcessing,
         'near-limit': isNearCharacterLimit,
@@ -330,6 +331,9 @@ const fileErrors = ref<FileError[]>([]);
 const previewModalOpen = ref(false);
 const currentPreviewFile = ref<File | null>(null);
 const filePreviewContent = ref('');
+// Track last drag target and timestamp to prevent flickering and improve drag detection
+const lastDragTarget = ref<EventTarget | null>(null);
+const lastDragTime = ref<number>(0);
 
 // Textarea configuration
 const MIN_TEXTAREA_HEIGHT = 54; // Minimum height in pixels
@@ -529,19 +533,41 @@ function stopProcessing(): void {
 }
 
 /**
- * Handle file drag over event
+ * Handle drag enter event
  */
-function handleDragOver(event: DragEvent): void {
+function handleDragEnter(event: DragEvent): void {
+  // Always prevent default to stop browser from opening the file
   event.preventDefault();
   event.stopPropagation();
-
+  
+  // Save the current target as the last drag target
+  lastDragTarget.value = event.target;
+  
   // Increment drag counter to handle nested elements
   dragCounter.value++;
-
+  
+  // Update timestamp to track recent drag activity
+  lastDragTime.value = Date.now();
+  
   // Check if the dragged items contain files
   if (event.dataTransfer?.types.includes('Files')) {
     isDraggingFile.value = true;
+  }
+}
 
+/**
+ * Handle file drag over event
+ */
+function handleDragOver(event: DragEvent): void {
+  // Always prevent default to stop browser from opening the file
+  event.preventDefault();
+  event.stopPropagation();
+  
+  // Update timestamp to prevent flickering
+  lastDragTime.value = Date.now();
+  
+  // Check if the dragged items contain files
+  if (event.dataTransfer?.types.includes('Files')) {
     // Add visual feedback for valid drop target
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'copy';
@@ -553,27 +579,38 @@ function handleDragOver(event: DragEvent): void {
  * Handle file drag leave event
  */
 function handleDragLeave(event: DragEvent): void {
+  // Always prevent default to stop browser from opening the file
   event.preventDefault();
   event.stopPropagation();
-
+  
+  // Check if we're leaving the same element we entered
+  // This helps prevent flickering when moving between child elements
+  if (event.target === lastDragTarget.value) {
+    lastDragTarget.value = null;
+  }
+  
   // Decrement drag counter
   dragCounter.value--;
-
-  // Only reset dragging state when counter reaches 0
-  if (dragCounter.value <= 0) {
-    dragCounter.value = 0;
-    isDraggingFile.value = false;
-  }
+  
+  // Add a small delay to prevent flickering
+  setTimeout(() => {
+    // Only reset dragging state when counter reaches 0 and enough time has passed
+    if (dragCounter.value <= 0 && Date.now() - lastDragTime.value > 50) {
+      dragCounter.value = 0;
+      isDraggingFile.value = false;
+    }
+  }, 50);
 }
 
 /**
  * Handle file drop event
  */
 function handleFileDrop(event: DragEvent): void {
+  // Always prevent default to stop browser from opening the file
   event.preventDefault();
   event.stopPropagation();
 
-  // Reset drag state
+  // Reset drag state immediately
   isDraggingFile.value = false;
   dragCounter.value = 0;
 
@@ -945,6 +982,11 @@ function handleKeydown(event: KeyboardEvent): void {
   .message-input-container {
     width: 100%;
     background-color: #ffffff; // Ensure light background in light mode
+    border-radius: 8px !important; // Explicitly set border radius
+    overflow: hidden; // Prevent content from overflowing rounded corners
+    border: 1px solid rgba(0, 0, 0, 0.12); // Consistent border styling
+    box-shadow: none; // Remove any shadow that might affect border appearance
+    position: relative; // Needed for proper border rendering
   }
 
   .input-container {
@@ -954,13 +996,15 @@ function handleKeydown(event: KeyboardEvent): void {
   .auto-expand-textarea-wrapper {
     position: relative;
     width: 100%;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.24);
-    background-color: white;
-    transition: border 0.2s ease;
+    border-radius: 0; // Remove border radius from inner wrapper
+    border: none; // Remove border as it's handled by the container
+    background-color: transparent;
+    transition: all 0.2s ease;
 
     &:focus-within {
-      border: 2px solid var(--q-primary);
+      // Remove the border change on focus
+      border: none;
+      outline: none;
     }
 
     &.has-content {
@@ -981,6 +1025,11 @@ function handleKeydown(event: KeyboardEvent): void {
       font-size: inherit;
       color: rgba(0, 0, 0, 0.87); // Ensure visible text in light mode
       background-color: transparent;
+      caret-color: transparent; // Hide the cursor by default
+
+      &:focus {
+        caret-color: auto; // Show cursor only when focused
+      }
       overflow-y: hidden;
       transition:
         height 0.2s ease,
@@ -1121,6 +1170,8 @@ function handleKeydown(event: KeyboardEvent): void {
   // Attachments area styling
   .attachments-preview {
     margin-top: 8px;
+    background-color: transparent;
+    padding: 0 8px; // Add horizontal padding
 
     .attachment-item {
       .attachment-chip {
@@ -1279,6 +1330,7 @@ function handleKeydown(event: KeyboardEvent): void {
 
   // Drag and drop styles
   position: relative;
+  z-index: 1; /* Ensure proper stacking context */
 
   .drag-overlay {
     position: absolute;
@@ -1289,7 +1341,8 @@ function handleKeydown(event: KeyboardEvent): void {
     z-index: 10;
     border-radius: 8px;
     border: 2px dashed var(--q-primary);
-    animation: pulse 1.5s infinite ease-in-out;
+    animation: pulse 2s infinite ease-in-out;
+    pointer-events: none; /* Prevent overlay from intercepting events */
   }
 
   .drag-content {
@@ -1319,11 +1372,27 @@ function handleKeydown(event: KeyboardEvent): void {
   --q-action-button-color: grey-5;
 
   .message-input-container {
-    background-color: #1d1d1d;
-    border: 1px solid #333;
+    background-color: var(--q-dark-page) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 8px !important; /* Ensure border radius is maintained in dark mode */
+    overflow: hidden; /* Ensure content doesn't overflow the rounded corners */
+    box-shadow: none !important; /* Remove any shadow effects */
+    /* Fix for the corners showing incorrectly in dark mode */
+    &::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      right: -1px;
+      bottom: -1px;
+      border-radius: 8px;
+      pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
 
     .auto-expand-textarea {
       color: #fff;
+      background-color: var(--q-dark-page) !important;
 
       &::placeholder {
         color: rgba(255, 255, 255, 0.6);
@@ -1349,7 +1418,7 @@ function handleKeydown(event: KeyboardEvent): void {
   }
 
   .attachments-preview {
-    background-color: #2d2d2d;
+    background-color: transparent !important;
   }
 
   .drag-overlay {
