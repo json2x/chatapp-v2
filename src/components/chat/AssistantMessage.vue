@@ -356,15 +356,38 @@ watch(
     margin-bottom: 0.5rem;
   }
 
-  :deep(h1),
-  :deep(h2),
-  :deep(h3),
+  :deep(h1) {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 2.25rem;
+    line-height: 2.75rem;
+  }
+
+  :deep(h2) {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  :deep(h3) {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+
   :deep(h4),
   :deep(h5),
   :deep(h6) {
-    margin-top: 1.5rem;
+    margin-top: 0;
     margin-bottom: 1rem;
     font-weight: 600;
+    font-size: inherit;
+    line-height: calc(1rem + 0.5rem);
   }
 
   :deep(code) {
